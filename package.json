@@ -22,7 +22,6 @@
     "seed:dev": "ts-node scripts/seed-dev.ts"
   },
   "dependencies": {
-    "@nestjs/bull": "^10.1.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
@@ -33,7 +32,6 @@
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^7.2.0",
     "bcrypt": "^5.1.1",
-    "bull": "^4.12.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "mongoose": "^8.1.0",

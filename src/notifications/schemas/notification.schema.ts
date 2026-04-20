@@ -5,6 +5,9 @@ export type NotificationDocument = Notification & Document;
 
 @Schema({ timestamps: true })
 export class Notification {
+  id?: string;
+  createdAt?: Date;
+
   @Prop({ type: Types.ObjectId, ref: "User", required: true })
   userId: Types.ObjectId;
 

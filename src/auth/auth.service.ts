@@ -111,7 +111,9 @@ export class AuthService {
       changePasswordDto.newPassword,
       12,
     );
-    await this.usersService.update(userId, { passwordHash: newPasswordHash });
+    await this.usersService.update(userId, {
+      passwordHash: newPasswordHash,
+    } as any);
 
     return { success: true };
   }
@@ -124,7 +126,7 @@ export class AuthService {
     userId: string,
     updateData: Partial<User>,
   ): Promise<User> {
-    return this.usersService.update(userId, updateData);
+    return this.usersService.update(userId, updateData as any);
   }
 
   async forgotPassword(

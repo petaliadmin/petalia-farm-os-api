@@ -6,19 +6,19 @@ import {
   IsMongoId,
   IsObject,
   Min,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateParcelleDto {
-  @ApiProperty({ example: 'P-2024-001' })
+  @ApiProperty({ example: "P-2024-001" })
   @IsString()
   code: string;
 
-  @ApiProperty({ example: 'Parcelle Walo Nord' })
+  @ApiProperty({ example: "Parcelle Walo Nord" })
   @IsString()
   nom: string;
 
-  @ApiProperty({ example: 'Mamadou Diallo' })
+  @ApiProperty({ example: "Mamadou Diallo" })
   @IsString()
   producteurNom: string;
 
@@ -32,12 +32,20 @@ export class CreateParcelleDto {
   @IsOptional()
   localite?: string;
 
-  @ApiProperty({
-    type: 'object',
-    example: { type: 'Polygon', coordinates: [[[-16.9287, 14.7921], [-16.9265, 14.7921], ...]] },
+  @ApiPropertyOptional({
+    type: "object",
+    example: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [-16.9287, 14.7921],
+          [-16.9265, 14.7921],
+        ],
+      ],
+    },
   })
   @IsObject()
-  boundary: { type: 'Polygon'; coordinates: number[][][] };
+  boundary?: { type: "Polygon"; coordinates: number[][][] };
 
   @ApiProperty({ example: 5.5 })
   @IsNumber()
@@ -54,30 +62,43 @@ export class CreateParcelleDto {
   @IsOptional()
   typesSol?: string;
 
-  @ApiPropertyOptional({ enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate', 'autre'] })
+  @ApiPropertyOptional({
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate", "autre"],
+  })
   @IsOptional()
-  @IsEnum(['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate', 'autre'])
+  @IsEnum(["riz", "mais", "mil", "arachide", "oignon", "tomate", "autre"])
   culture?: string;
 
   @ApiPropertyOptional({
-    enum: ['semis', 'levee', 'vegetative', 'tallage', 'floraison', 'fruiting', 'maturation', 'recolte'],
+    enum: [
+      "semis",
+      "levee",
+      "vegetative",
+      "tallage",
+      "floraison",
+      "fruiting",
+      "maturation",
+      "recolte",
+    ],
   })
   @IsOptional()
   @IsEnum([
-    'semis',
-    'levee',
-    'vegetative',
-    'tallage',
-    'floraison',
-    'fruiting',
-    'maturation',
-    'recolte',
+    "semis",
+    "levee",
+    "vegetative",
+    "tallage",
+    "floraison",
+    "fruiting",
+    "maturation",
+    "recolte",
   ])
   stade?: string;
 
-  @ApiPropertyOptional({ enum: ['hivernage', 'contre_saison_froide', 'contre_saison_chaude'] })
+  @ApiPropertyOptional({
+    enum: ["hivernage", "contre_saison_froide", "contre_saison_chaude"],
+  })
   @IsOptional()
-  @IsEnum(['hivernage', 'contre_saison_froide', 'contre_saison_chaude'])
+  @IsEnum(["hivernage", "contre_saison_froide", "contre_saison_chaude"])
   typeCampagne?: string;
 
   @ApiPropertyOptional()
@@ -94,14 +115,18 @@ export class CreateParcelleDto {
   @IsOptional()
   densite?: string;
 
-  @ApiPropertyOptional({ enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate'] })
+  @ApiPropertyOptional({
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate"],
+  })
   @IsOptional()
-  @IsEnum(['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate'])
+  @IsEnum(["riz", "mais", "mil", "arachide", "oignon", "tomate"])
   culturePrecedente?: string;
 
-  @ApiPropertyOptional({ enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate'] })
+  @ApiPropertyOptional({
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate"],
+  })
   @IsOptional()
-  @IsEnum(['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate'])
+  @IsEnum(["riz", "mais", "mil", "arachide", "oignon", "tomate"])
   rotationPrevue?: string;
 
   @ApiPropertyOptional()
@@ -169,7 +194,7 @@ export class UpdateParcelleDto {
   @ApiPropertyOptional()
   @IsObject()
   @IsOptional()
-  boundary?: { type: 'Polygon'; coordinates: number[][][] };
+  boundary?: { type: "Polygon"; coordinates: number[][][] };
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -196,9 +221,9 @@ export class UpdateParcelleDto {
   @IsString()
   stade?: string;
 
-  @ApiPropertyOptional({ enum: ['sain', 'attention', 'urgent', 'recolte'] })
+  @ApiPropertyOptional({ enum: ["sain", "attention", "urgent", "recolte"] })
   @IsOptional()
-  @IsEnum(['sain', 'attention', 'urgent', 'recolte'])
+  @IsEnum(["sain", "attention", "urgent", "recolte"])
   statut?: string;
 
   @ApiPropertyOptional()
@@ -215,14 +240,4 @@ export class UpdateParcelleDto {
   @ApiPropertyOptional()
   @IsOptional()
   dateSemis?: Date;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  variete?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  typesSol?: string;
 }

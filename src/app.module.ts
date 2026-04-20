@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
-import { BullModule } from "@nestjs/bull";
 import { ScheduleModule } from "@nestjs/schedule";
 
 import { AuthModule } from "./auth/auth.module";
@@ -33,17 +32,6 @@ import { EquipesModule } from "./equipes/equipes.module";
         uri:
           configService.get("MONGODB_URI") ||
           "mongodb://localhost:27017/petalia",
-      }),
-      inject: [ConfigService],
-    }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        redis: {
-          host: configService.get("REDIS_HOST") || "localhost",
-          port: configService.get("REDIS_PORT") || 6379,
-          password: configService.get("REDIS_PASSWORD"),
-        },
       }),
       inject: [ConfigService],
     }),

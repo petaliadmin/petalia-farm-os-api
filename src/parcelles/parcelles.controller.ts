@@ -33,7 +33,7 @@ export class ParcellesController {
   ) {
     return this.parcellesService.findAll({
       organisationId,
-      technicianId,
+      technicianId: technicianId as any,
       statut,
       culture,
     });

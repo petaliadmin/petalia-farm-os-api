@@ -8,30 +8,6 @@ services:
     env_file: .env.production
     ports:
       - "3000:3000"
-    depends_on:
-      - redis
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  worker:
-    build: .
-    env_file: .env.production
-    environment:
-      - WORKER_MODE=true
-    depends_on:
-      - redis
-    restart: unless-stopped
-    command: node dist/worker.js
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
     restart: unless-stopped
 
   nginx:
@@ -45,6 +21,3 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-
-volumes:
-  redis_data:

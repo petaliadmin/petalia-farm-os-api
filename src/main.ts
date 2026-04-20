@@ -1,12 +1,10 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
-import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const configService = app.get(ConfigService);
 
   app.setGlobalPrefix("api");
 
@@ -22,7 +20,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: configService.get("CORS_ORIGIN") || "http://localhost:4200",
+    origin: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: [
@@ -42,7 +40,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/docs", app, document);
 
-  const port = configService.get("PORT") || 3000;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🐝 Petalia API running on port ${port}`);
 }
