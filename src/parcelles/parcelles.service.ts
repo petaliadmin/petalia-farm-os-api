@@ -21,7 +21,12 @@ export class ParcellesService {
     technicienId?: string;
     statut?: string;
     culture?: string;
-  }): Promise<Parcelle[]> {
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Parcelle[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const filter: any = { deleted: false };
     if (query?.organisationId) {
       filter.organisationId = new Types.ObjectId(query.organisationId);
@@ -35,7 +40,22 @@ export class ParcellesService {
     if (query?.culture) {
       filter.culture = query.culture;
     }
-    return this.parcelleModel.find(filter).sort({ code: 1 }).exec();
+
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.parcelleModel
+        .find(filter)
+        .sort({ code: 1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.parcelleModel.countDocuments(filter),
+    ]);
+
+    return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Parcelle> {
@@ -163,7 +183,7 @@ export class ParcellesService {
     const { Campagne } = await import("../campagnes/schemas/campagne.schema");
     const CampagneModel = this.parcelleModel.db.model(Campagne.name);
     return CampagneModel.find({
-      /* parcelleId filter */
+      parcelleIds: new Types.ObjectId(parcelleId),
     })
       .sort({ dateDebut: -1 })
       .exec();

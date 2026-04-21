@@ -28,8 +28,16 @@ export class IntrantsController {
   constructor(private intrantsService: IntrantsService) {}
 
   @Get()
-  findAll(@Query("organisationId") organisationId?: string) {
-    return this.intrantsService.findAll(organisationId);
+  findAll(
+    @Query("organisationId") organisationId?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.intrantsService.findAll({
+      organisationId,
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+    });
   }
 
   @Get("stats")

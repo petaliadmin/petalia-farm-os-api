@@ -23,8 +23,16 @@ export class CampagnesController {
   constructor(private campagnesService: CampagnesService) {}
 
   @Get()
-  findAll(@Query("organisationId") organisationId?: string) {
-    return this.campagnesService.findAll(organisationId);
+  findAll(
+    @Query("organisationId") organisationId?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.campagnesService.findAll({
+      organisationId,
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+    });
   }
 
   @Get(":id")

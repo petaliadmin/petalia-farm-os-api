@@ -18,12 +18,34 @@ export class RecoltesService {
     return created.save();
   }
 
-  async findAll(query?: { parcelleId?: string }): Promise<Recolte[]> {
+  async findAll(query?: {
+    parcelleId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Recolte[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const filter: any = {};
     if (query?.parcelleId) {
       filter.parcelleId = new Types.ObjectId(query.parcelleId);
     }
-    return this.recolteModel.find(filter).sort({ dateRecolte: -1 }).exec();
+
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.recolteModel
+        .find(filter)
+        .sort({ dateRecolte: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.recolteModel.countDocuments(filter),
+    ]);
+
+    return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Recolte> {

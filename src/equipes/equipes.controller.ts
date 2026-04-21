@@ -23,8 +23,16 @@ export class EquipesController {
   constructor(private equipesService: EquipesService) {}
 
   @Get()
-  findAll(@Query("organisationId") organisationId?: string) {
-    return this.equipesService.findAll(organisationId);
+  findAll(
+    @Query("organisationId") organisationId?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.equipesService.findAll({
+      organisationId,
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+    });
   }
 
   @Get(":id")

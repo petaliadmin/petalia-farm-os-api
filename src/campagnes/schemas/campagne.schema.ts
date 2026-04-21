@@ -38,6 +38,9 @@ export class Campagne {
   @Prop()
   rendementFinal?: number;
 
+  @Prop({ type: [Types.ObjectId], ref: "Parcelle", default: [] })
+  parcelleIds: Types.ObjectId[];
+
   @Prop({ type: Types.ObjectId, ref: "Organisation" })
   organisationId: Types.ObjectId;
 }

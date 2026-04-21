@@ -13,11 +13,33 @@ export class CampagnesService {
     return new this.campagneModel(data).save();
   }
 
-  async findAll(organisationId?: string): Promise<Campagne[]> {
-    const filter = organisationId
-      ? { organisationId: new Types.ObjectId(organisationId) }
+  async findAll(query?: {
+    organisationId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Campagne[];
+    meta: { total: number; page: number; limit: number };
+  }> {
+    const filter = query?.organisationId
+      ? { organisationId: new Types.ObjectId(query.organisationId) }
       : {};
-    return this.campagneModel.find(filter).sort({ dateDebut: -1 }).exec();
+
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.campagneModel
+        .find(filter)
+        .sort({ dateDebut: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.campagneModel.countDocuments(filter),
+    ]);
+
+    return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Campagne> {
@@ -73,9 +95,7 @@ export class CampagnesService {
 
   async findByParcelle(parcelleId: string): Promise<Campagne[]> {
     return this.campagneModel
-      .find({
-        /* parcelleId would be filtered via another collection */
-      })
+      .find({ parcelleIds: new Types.ObjectId(parcelleId) })
       .sort({ dateDebut: -1 })
       .exec();
   }

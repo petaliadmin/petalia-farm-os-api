@@ -27,8 +27,15 @@ export class TachesController {
   findAll(
     @Query("statut") statut?: string,
     @Query("assigneeId") assigneeId?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
-    return this.tachesService.findAll({ statut, assigneeId });
+    return this.tachesService.findAll({
+      statut,
+      assigneeId,
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+    });
   }
 
   @Get("stats")

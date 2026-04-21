@@ -2,18 +2,42 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { Equipe, EquipeDocument } from "./schemas/equipe.schema";
+import { UsersService } from "../users/users.service";
 
 @Injectable()
 export class EquipesService {
   constructor(
     @InjectModel(Equipe.name) private equipeModel: Model<EquipeDocument>,
+    private usersService: UsersService,
   ) {}
 
-  async findAll(organisationId?: string): Promise<Equipe[]> {
-    const filter = organisationId
-      ? { organisationId: new Types.ObjectId(organisationId) }
+  async findAll(query?: {
+    organisationId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Equipe[];
+    meta: { total: number; page: number; limit: number };
+  }> {
+    const filter = query?.organisationId
+      ? { organisationId: new Types.ObjectId(query.organisationId) }
       : {};
-    return this.equipeModel.find(filter).sort({ nom: 1 }).exec();
+
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.equipeModel
+        .find(filter)
+        .sort({ nom: 1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.equipeModel.countDocuments(filter),
+    ]);
+
+    return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Equipe> {
@@ -40,7 +64,7 @@ export class EquipesService {
   }
 
   async getMembres(id: string): Promise<any[]> {
-    // Would fetch users with this equipeId
-    return [];
+    await this.findById(id);
+    return this.usersService.findByEquipage(id);
   }
 }

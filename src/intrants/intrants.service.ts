@@ -33,12 +33,34 @@ export class IntrantsService {
     return created.save();
   }
 
-  async findAll(organisationId?: string): Promise<Intrant[]> {
+  async findAll(query?: {
+    organisationId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Intrant[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const filter: any = { deleted: false };
-    if (organisationId) {
-      filter.organisationId = new Types.ObjectId(organisationId);
+    if (query?.organisationId) {
+      filter.organisationId = new Types.ObjectId(query.organisationId);
     }
-    return this.intrantModel.find(filter).sort({ nom: 1 }).exec();
+
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.intrantModel
+        .find(filter)
+        .sort({ nom: 1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.intrantModel.countDocuments(filter),
+    ]);
+
+    return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Intrant> {

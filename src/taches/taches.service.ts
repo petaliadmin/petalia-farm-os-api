@@ -25,15 +25,32 @@ export class TachesService {
   async findAll(query?: {
     statut?: string;
     assigneeId?: string;
-  }): Promise<Tache[]> {
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Tache[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const filter: any = {};
     if (query?.statut) filter.statut = query.statut;
     if (query?.assigneeId)
       filter.assigneeId = new Types.ObjectId(query.assigneeId);
-    return this.tacheModel
-      .find(filter)
-      .sort({ priorite: -1, datePlanifiee: 1 })
-      .exec();
+
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.tacheModel
+        .find(filter)
+        .sort({ priorite: -1, datePlanifiee: 1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.tacheModel.countDocuments(filter),
+    ]);
+
+    return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Tache> {

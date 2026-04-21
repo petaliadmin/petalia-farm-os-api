@@ -27,15 +27,19 @@ export class ParcellesController {
   @ApiOperation({ summary: "Liste des parcelles" })
   findAll(
     @Query("organisationId") organisationId?: string,
-    @Query("technicienId") technicianId?: string,
+    @Query("technicienId") technicienId?: string,
     @Query("statut") statut?: string,
     @Query("culture") culture?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
   ) {
     return this.parcellesService.findAll({
       organisationId,
-      technicianId: technicianId as any,
+      technicienId,
       statut,
       culture,
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
     });
   }
 

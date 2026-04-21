@@ -24,8 +24,16 @@ export class RecoltesController {
   constructor(private recoltesService: RecoltesService) {}
 
   @Get()
-  findAll(@Query("parcelleId") parcelleId?: string) {
-    return this.recoltesService.findAll({ parcelleId });
+  findAll(
+    @Query("parcelleId") parcelleId?: string,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+  ) {
+    return this.recoltesService.findAll({
+      parcelleId,
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+    });
   }
 
   @Get(":id")
