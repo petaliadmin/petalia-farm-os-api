@@ -1,10 +1,10 @@
-import * as express from "express";
+import express, { Express } from "express";
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import { createApp } from "../src/main";
 
-let cachedServer: express.Express | null = null;
+let cachedServer: Express | null = null;
 
-async function getServer(): Promise<express.Express> {
+async function getServer(): Promise<Express> {
   if (cachedServer) return cachedServer;
   const server = express();
   const app = await createApp(server);
