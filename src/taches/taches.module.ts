@@ -1,13 +1,11 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { TachesController } from "./taches.controller";
-import { TachesService } from "./taches.service";
-import { Tache, TacheSchema } from "./schemas/tache.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { TachesController } from './taches.controller';
+import { TachesService } from './taches.service';
+import { Tache } from './entities/tache.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Tache.name, schema: TacheSchema }]),
-  ],
+  imports: [TypeOrmModule.forFeature([Tache])],
   controllers: [TachesController],
   providers: [TachesService],
   exports: [TachesService],

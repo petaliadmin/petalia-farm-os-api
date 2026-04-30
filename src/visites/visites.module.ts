@@ -1,13 +1,11 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { VisitesController } from "./visites.controller";
-import { VisitesService } from "./visites.service";
-import { Visite, VisiteSchema } from "./schemas/visite.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { VisitesController } from './visites.controller';
+import { VisitesService } from './visites.service';
+import { Visite } from './entities/visite.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Visite.name, schema: VisiteSchema }]),
-  ],
+  imports: [TypeOrmModule.forFeature([Visite])],
   controllers: [VisitesController],
   providers: [VisitesService],
   exports: [VisitesService],

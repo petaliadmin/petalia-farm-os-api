@@ -1,7 +1,7 @@
 {
   "name": "petalia-backend",
   "version": "2.0.0",
-  "description": "Petalia AgroAssist Backend API v2.0 - NestJS + MongoDB",
+  "description": "Petalia AgroAssist Backend API v2.0 - NestJS + PostgreSQL + PostGIS",
   "author": "Petalia",
   "private": true,
   "license": "MIT",
@@ -18,33 +18,41 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:run": "ts-node scripts/mongo-init.ts",
-    "seed:dev": "ts-node scripts/seed-dev.ts"
+    "db:init": "ts-node -r tsconfig-paths/register scripts/init-db.ts",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
+    "seed:dev": "ts-node -r tsconfig-paths/register scripts/seed-dev.ts"
   },
   "dependencies": {
+    "@nestjs/cache-manager": "^2.2.2",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
     "@nestjs/jwt": "^10.2.0",
-    "@nestjs/mongoose": "^10.0.2",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^7.2.0",
+    "@nestjs/typeorm": "^10.0.2",
     "bcrypt": "^5.1.1",
+    "cache-manager": "^5.4.0",
+    "cache-manager-redis-yet": "^4.1.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "firebase-admin": "^12.0.0",
+    "ioredis": "^5.3.2",
     "lodash": "^4.18.1",
-    "mongoose": "^8.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pdfkit": "^0.14.0",
+    "pg": "^8.11.3",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
     "sharp": "^0.33.2",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.0",
@@ -52,12 +60,14 @@
     "@nestjs/testing": "^10.3.0",
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^4.17.21",
+    "@types/ioredis": "^4.28.10",
     "@types/jest": "^29.5.12",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.11.5",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/pdfkit": "^0.13.3",
+    "@types/pg": "^8.11.2",
     "@types/swagger-ui-express": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
@@ -75,19 +85,11 @@
     "typescript": "^5.3.3"
   },
   "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
+    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+    "collectCoverageFrom": ["**/*.(t|j)s"],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }

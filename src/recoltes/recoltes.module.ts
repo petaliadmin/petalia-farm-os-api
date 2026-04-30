@@ -1,13 +1,11 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { RecoltesController } from "./recoltes.controller";
-import { RecoltesService } from "./recoltes.service";
-import { Recolte, RecolteSchema } from "./schemas/recolte.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RecoltesController } from './recoltes.controller';
+import { RecoltesService } from './recoltes.service';
+import { Recolte } from './entities/recolte.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Recolte.name, schema: RecolteSchema }]),
-  ],
+  imports: [TypeOrmModule.forFeature([Recolte])],
   controllers: [RecoltesController],
   providers: [RecoltesService],
   exports: [RecoltesService],

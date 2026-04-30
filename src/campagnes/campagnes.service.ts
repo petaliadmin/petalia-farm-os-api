@@ -1,129 +1,93 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
-import { Campagne, CampagneDocument } from "./schemas/campagne.schema";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Campagne } from './entities/campagne.entity';
 
 @Injectable()
 export class CampagnesService {
   constructor(
-    @InjectModel(Campagne.name) private campagneModel: Model<CampagneDocument>,
+    @InjectRepository(Campagne)
+    private campagneRepo: Repository<Campagne>,
+    private dataSource: DataSource,
   ) {}
 
   async create(data: Partial<Campagne>): Promise<Campagne> {
-    return new this.campagneModel(data).save();
+    return this.campagneRepo.save(this.campagneRepo.create(data));
   }
 
   async findAll(query?: {
     organisationId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{
-    data: Campagne[];
-    meta: { total: number; page: number; limit: number };
-  }> {
-    const filter = query?.organisationId
-      ? { organisationId: new Types.ObjectId(query.organisationId) }
-      : {};
-
+  }): Promise<{ data: Campagne[]; meta: { total: number; page: number; limit: number } }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
-    const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-      this.campagneModel
-        .find(filter)
-        .sort({ dateDebut: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.campagneModel.countDocuments(filter),
-    ]);
+    const qb = this.campagneRepo
+      .createQueryBuilder('c')
+      .orderBy('c.dateDebut', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
+    if (query?.organisationId) qb.andWhere('c.organisationId = :org', { org: query.organisationId });
+
+    const [data, total] = await qb.getManyAndCount();
     return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Campagne> {
-    const campagne = await this.campagneModel.findById(id).exec();
-    if (!campagne) throw new NotFoundException(`Campagne ${id} non trouvée`);
-    return campagne;
+    const c = await this.campagneRepo.findOne({ where: { id } });
+    if (!c) throw new NotFoundException(`Campagne ${id} non trouvée`);
+    return c;
   }
 
   async update(id: string, data: Partial<Campagne>): Promise<Campagne> {
-    const updated = await this.campagneModel
-      .findByIdAndUpdate(id, data, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException(`Campagne ${id} non trouvée`);
-    return updated;
+    const campagne = await this.findById(id);
+    Object.assign(campagne, data);
+    return this.campagneRepo.save(campagne);
   }
 
-  async cloture(
-    id: string,
-    data: {
-      dateFin?: string;
-      rendementFinal?: number;
-      observationsCloture?: string;
-    },
-  ): Promise<Campagne> {
-    const updateData: any = {
-      statut: "terminee",
-      progressionPct: 100,
-      dateFin: new Date(data.dateFin || new Date().toISOString().split("T")[0]),
-    };
-    if (data.rendementFinal) updateData.rendementFinal = data.rendementFinal;
-    if (data.observationsCloture)
-      updateData.observationsCloture = data.observationsCloture;
-
-    const updated = await this.campagneModel
-      .findByIdAndUpdate(id, updateData, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException(`Campagne ${id} non trouvée`);
-    return updated;
+  async cloture(id: string, data: { dateFin?: string; rendementFinal?: number; observationsCloture?: string }): Promise<Campagne> {
+    const campagne = await this.findById(id);
+    campagne.statut = 'terminee';
+    campagne.progressionPct = 100;
+    campagne.dateFin = new Date(data.dateFin || new Date().toISOString().split('T')[0]);
+    if (data.rendementFinal) campagne.rendementFinal = data.rendementFinal;
+    if (data.observationsCloture) campagne.observationsCloture = data.observationsCloture;
+    return this.campagneRepo.save(campagne);
   }
 
   async activer(id: string): Promise<Campagne> {
-    const updated = await this.campagneModel
-      .findByIdAndUpdate(id, { statut: "en_cours" }, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException(`Campagne ${id} non trouvée`);
-    return updated;
+    const campagne = await this.findById(id);
+    campagne.statut = 'en_cours';
+    return this.campagneRepo.save(campagne);
   }
 
   async remove(id: string): Promise<{ data: boolean }> {
-    await this.campagneModel.findByIdAndDelete(id).exec();
+    await this.campagneRepo.delete(id);
     return { data: true };
   }
 
   async findByParcelle(parcelleId: string): Promise<Campagne[]> {
-    return this.campagneModel
-      .find({ parcelleIds: new Types.ObjectId(parcelleId) })
-      .sort({ dateDebut: -1 })
-      .exec();
+    return this.campagneRepo
+      .createQueryBuilder('c')
+      .where(`c."parcelleIds" @> :ids::jsonb`, { ids: JSON.stringify([parcelleId]) })
+      .orderBy('c.dateDebut', 'DESC')
+      .getMany();
   }
 
   async getTaches(campagneId: string): Promise<any[]> {
-    const { Tache } = await import("../taches/schemas/tache.schema");
-    const TacheModel = this.campagneModel.db.model(Tache.name);
-    return TacheModel.find({
-      campagneId: new Types.ObjectId(campagneId),
-    }).exec();
+    const { Tache } = await import('../taches/entities/tache.entity');
+    return this.dataSource.getRepository(Tache).find({ where: { campagneId } });
   }
 
   async generateTaches(campagneId: string): Promise<any[]> {
-    // In production, would generate tasks based on campaign type and parcelles
-    const { Tache } = await import("../taches/schemas/tache.schema");
-    const TacheModel = this.campagneModel.db.model(Tache.name);
+    const { Tache } = await import('../taches/entities/tache.entity');
+    const repo = this.dataSource.getRepository(Tache);
     const tasks = [
-      {
-        titre: "Inspection parcelles",
-        priorite: "haute",
-        campagneId: new Types.ObjectId(campagneId),
-      },
-      {
-        titre: "Application intrants",
-        priorite: "normale",
-        campagneId: new Types.ObjectId(campagneId),
-      },
+      repo.create({ titre: 'Inspection parcelles', priorite: 'haute', campagneId }),
+      repo.create({ titre: 'Application intrants', priorite: 'normale', campagneId }),
     ];
-    return TacheModel.insertMany(tasks);
+    return repo.save(tasks);
   }
 }

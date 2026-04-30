@@ -1,17 +1,12 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { IntrantsController } from "./intrants.controller";
-import { IntrantsService } from "./intrants.service";
-import { Intrant, IntrantSchema } from "./schemas/intrant.schema";
-import { Mouvement, MouvementSchema } from "./schemas/mouvement.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { IntrantsController } from './intrants.controller';
+import { IntrantsService } from './intrants.service';
+import { Intrant } from './entities/intrant.entity';
+import { Mouvement } from './entities/mouvement.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: Intrant.name, schema: IntrantSchema },
-      { name: Mouvement.name, schema: MouvementSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Intrant, Mouvement])],
   controllers: [IntrantsController],
   providers: [IntrantsService],
   exports: [IntrantsService],

@@ -1,69 +1,65 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
-import { User, UserDocument } from "./schemas/user.schema";
-import { CreateUserDto, UpdateUserDto } from "./dto/users.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
+import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+  ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const createdUser = new this.userModel(createUserDto);
-    return createdUser.save();
+  async create(dto: CreateUserDto): Promise<User> {
+    return this.userRepo.save(this.userRepo.create(dto));
   }
 
   async findAll(organisationId?: string): Promise<User[]> {
-    const query = organisationId
-      ? { organisationId: new Types.ObjectId(organisationId) }
-      : {};
-    return this.userModel.find(query).exec();
+    const where = organisationId ? { organisationId } : {};
+    return this.userRepo.find({ where });
   }
 
   async findById(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).exec();
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`User with ID ${id} not found`);
     return user;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userModel.findOne({ email }).exec();
+    return this.userRepo
+      .createQueryBuilder('u')
+      .addSelect(['u.passwordHash', 'u.refreshTokenHash', 'u.otpCode', 'u.loginAttempts'])
+      .where('u.email = :email', { email })
+      .getOne();
   }
 
   async findByPhone(phone: string): Promise<User | null> {
-    return this.userModel.findOne({ phone }).exec();
+    return this.userRepo
+      .createQueryBuilder('u')
+      .addSelect(['u.passwordHash', 'u.otpCode'])
+      .where('u.phone = :phone', { phone })
+      .getOne();
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.userModel
-      .findByIdAndUpdate(id, updateUserDto, { new: true })
-      .exec();
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-    return user;
+  async update(id: string, dto: UpdateUserDto): Promise<User> {
+    const user = await this.findById(id);
+    Object.assign(user, dto);
+    return this.userRepo.save(user);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.userModel.findByIdAndDelete(id).exec();
-    if (!result) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
+    const result = await this.userRepo.delete(id);
+    if (!result.affected) throw new NotFoundException(`User with ID ${id} not found`);
   }
 
   async findByEquipage(equipeId: string): Promise<User[]> {
-    return this.userModel
-      .find({ equipeId: new Types.ObjectId(equipeId) })
-      .exec();
+    return this.userRepo.find({ where: { equipeId } });
   }
 
   async findTechniciens(organisationId?: string): Promise<User[]> {
-    const query: any = { role: "technicien", actif: true };
-    if (organisationId) {
-      query.organisationId = new Types.ObjectId(organisationId);
-    }
-    return this.userModel.find(query).exec();
+    const where: any = { role: 'technicien', actif: true };
+    if (organisationId) where.organisationId = organisationId;
+    return this.userRepo.find({ where });
   }
 }

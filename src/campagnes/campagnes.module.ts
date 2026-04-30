@@ -1,15 +1,11 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { CampagnesController } from "./campagnes.controller";
-import { CampagnesService } from "./campagnes.service";
-import { Campagne, CampagneSchema } from "./schemas/campagne.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CampagnesController } from './campagnes.controller';
+import { CampagnesService } from './campagnes.service';
+import { Campagne } from './entities/campagne.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: Campagne.name, schema: CampagneSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Campagne])],
   controllers: [CampagnesController],
   providers: [CampagnesService],
   exports: [CampagnesService],

@@ -1,17 +1,12 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { ParcellesController } from "./parcelles.controller";
-import { ParcellesService } from "./parcelles.service";
-import { Parcelle, ParcelleSchema } from "./schemas/parcelle.schema";
-import { FieldPoi, FieldPoiSchema } from "./schemas/field-poi.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ParcellesController } from './parcelles.controller';
+import { ParcellesService } from './parcelles.service';
+import { Parcelle } from './entities/parcelle.entity';
+import { FieldPoi } from './entities/field-poi.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: Parcelle.name, schema: ParcelleSchema },
-      { name: FieldPoi.name, schema: FieldPoiSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Parcelle, FieldPoi])],
   controllers: [ParcellesController],
   providers: [ParcellesService],
   exports: [ParcellesService],

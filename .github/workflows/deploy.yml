@@ -1,0 +1,66 @@
+name: Deploy to EC2
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy deployment files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.deploy.yml,nginx/nginx.conf"
+          target: "/home/${{ secrets.EC2_USER }}/petalia-farm-os"
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,IMAGE_TAG
+          script: |
+            set -e
+
+            export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+            export IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+
+            cd /home/${{ secrets.EC2_USER }}/petalia-farm-os
+
+            # DockerHub login
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+            # Pull new image
+            docker pull $DOCKERHUB_USERNAME/petalia-farm-os-api:$IMAGE_TAG
+
+            # Tag as latest locally
+            docker tag $DOCKERHUB_USERNAME/petalia-farm-os-api:$IMAGE_TAG \
+                       $DOCKERHUB_USERNAME/petalia-farm-os-api:current
+
+            # Restart containers with new image
+            IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME \
+              docker compose -f docker-compose.deploy.yml down
+
+            IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME \
+              docker compose -f docker-compose.deploy.yml up -d
+
+            # Clean up old images
+            docker image prune -f
+
+            # DockerHub logout
+            docker logout
+
+            echo "Deployment complete — $IMAGE_TAG"

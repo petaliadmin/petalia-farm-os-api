@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
-import { Equipe, EquipeDocument } from "./schemas/equipe.schema";
-import { UsersService } from "../users/users.service";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Equipe } from './entities/equipe.entity';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class EquipesService {
   constructor(
-    @InjectModel(Equipe.name) private equipeModel: Model<EquipeDocument>,
+    @InjectRepository(Equipe)
+    private equipeRepo: Repository<Equipe>,
     private usersService: UsersService,
   ) {}
 
@@ -15,51 +16,39 @@ export class EquipesService {
     organisationId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{
-    data: Equipe[];
-    meta: { total: number; page: number; limit: number };
-  }> {
-    const filter = query?.organisationId
-      ? { organisationId: new Types.ObjectId(query.organisationId) }
-      : {};
-
+  }): Promise<{ data: Equipe[]; meta: { total: number; page: number; limit: number } }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
-    const skip = (page - 1) * limit;
+    const where = query?.organisationId ? { organisationId: query.organisationId } : {};
 
-    const [data, total] = await Promise.all([
-      this.equipeModel
-        .find(filter)
-        .sort({ nom: 1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.equipeModel.countDocuments(filter),
-    ]);
+    const [data, total] = await this.equipeRepo.findAndCount({
+      where,
+      order: { nom: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
     return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Equipe> {
-    const equipe = await this.equipeModel.findById(id).exec();
+    const equipe = await this.equipeRepo.findOne({ where: { id } });
     if (!equipe) throw new NotFoundException(`Équipe ${id} non trouvée`);
     return equipe;
   }
 
   async create(data: Partial<Equipe>): Promise<Equipe> {
-    return new this.equipeModel(data).save();
+    return this.equipeRepo.save(this.equipeRepo.create(data));
   }
 
   async update(id: string, data: Partial<Equipe>): Promise<Equipe> {
-    const updated = await this.equipeModel
-      .findByIdAndUpdate(id, data, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException(`Équipe ${id} non trouvée`);
-    return updated;
+    const equipe = await this.findById(id);
+    Object.assign(equipe, data);
+    return this.equipeRepo.save(equipe);
   }
 
   async remove(id: string): Promise<{ data: boolean }> {
-    await this.equipeModel.findByIdAndDelete(id).exec();
+    await this.equipeRepo.delete(id);
     return { data: true };
   }
 

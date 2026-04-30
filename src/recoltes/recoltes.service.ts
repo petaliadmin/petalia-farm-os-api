@@ -1,85 +1,67 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
-import { Recolte, RecolteDocument } from "./schemas/recolte.schema";
-import { CreateRecolteDto, UpdateRecolteDto } from "./dto/recoltes.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Recolte } from './entities/recolte.entity';
+import { CreateRecolteDto, UpdateRecolteDto } from './dto/recoltes.dto';
 
 @Injectable()
 export class RecoltesService {
   constructor(
-    @InjectModel(Recolte.name) private recolteModel: Model<RecolteDocument>,
+    @InjectRepository(Recolte)
+    private recolteRepo: Repository<Recolte>,
   ) {}
 
-  async create(createDto: CreateRecolteDto): Promise<Recolte> {
-    // Server recalculates all computed fields
-    const recolteData = { ...createDto };
-    // The pre-save hook handles yield, loss rate, and revenue calculations
-    const created = new this.recolteModel(recolteData);
-    return created.save();
+  async create(dto: CreateRecolteDto): Promise<Recolte> {
+    return this.recolteRepo.save(this.recolteRepo.create(dto));
   }
 
   async findAll(query?: {
     parcelleId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{
-    data: Recolte[];
-    meta: { total: number; page: number; limit: number };
-  }> {
-    const filter: any = {};
-    if (query?.parcelleId) {
-      filter.parcelleId = new Types.ObjectId(query.parcelleId);
-    }
-
+  }): Promise<{ data: Recolte[]; meta: { total: number; page: number; limit: number } }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
-    const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-      this.recolteModel
-        .find(filter)
-        .sort({ dateRecolte: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.recolteModel.countDocuments(filter),
-    ]);
+    const qb = this.recolteRepo
+      .createQueryBuilder('r')
+      .orderBy('r.dateRecolte', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
+    if (query?.parcelleId) qb.andWhere('r.parcelleId = :pid', { pid: query.parcelleId });
+
+    const [data, total] = await qb.getManyAndCount();
     return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Recolte> {
-    const recolte = await this.recolteModel.findById(id).exec();
+    const recolte = await this.recolteRepo.findOne({ where: { id } });
     if (!recolte) throw new NotFoundException(`Recolte ${id} non trouvée`);
     return recolte;
   }
 
-  async update(id: string, updateDto: UpdateRecolteDto): Promise<Recolte> {
-    // Recalculates computed fields after update
-    const updated = await this.recolteModel
-      .findByIdAndUpdate(id, updateDto, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException(`Recolte ${id} non trouvée`);
-    return updated;
+  async update(id: string, dto: UpdateRecolteDto): Promise<Recolte> {
+    const recolte = await this.findById(id);
+    Object.assign(recolte, dto);
+    return this.recolteRepo.save(recolte);
   }
 
   async remove(id: string): Promise<{ data: boolean }> {
-    await this.recolteModel.findByIdAndDelete(id).exec();
+    await this.recolteRepo.delete(id);
     return { data: true };
   }
 
   async findByParcelle(parcelleId: string): Promise<Recolte[]> {
-    return this.recolteModel
-      .find({ parcelleId: new Types.ObjectId(parcelleId) })
-      .sort({ dateRecolte: -1 })
-      .exec();
+    return this.recolteRepo.find({
+      where: { parcelleId },
+      order: { dateRecolte: 'DESC' },
+    });
   }
 
   async valider(id: string): Promise<Recolte> {
-    const updated = await this.recolteModel
-      .findByIdAndUpdate(id, { statut: "validee" }, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException(`Recolte ${id} non trouvée`);
-    return updated;
+    const recolte = await this.findById(id);
+    recolte.statut = 'validee';
+    return this.recolteRepo.save(recolte);
   }
 }

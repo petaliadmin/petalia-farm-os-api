@@ -1,19 +1,23 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
-import { Parcelle, ParcelleDocument } from "./schemas/parcelle.schema";
-import { CreateParcelleDto, UpdateParcelleDto } from "./dto/parcelles.dto";
-import { ParcelleStats } from "./interfaces/parcelle.interface";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Parcelle } from './entities/parcelle.entity';
+import { FieldPoi } from './entities/field-poi.entity';
+import { CreateParcelleDto, UpdateParcelleDto } from './dto/parcelles.dto';
+import { ParcelleStats } from './interfaces/parcelle.interface';
 
 @Injectable()
 export class ParcellesService {
   constructor(
-    @InjectModel(Parcelle.name) private parcelleModel: Model<ParcelleDocument>,
+    @InjectRepository(Parcelle)
+    private parcelleRepo: Repository<Parcelle>,
+    @InjectRepository(FieldPoi)
+    private fieldPoiRepo: Repository<FieldPoi>,
+    private dataSource: DataSource,
   ) {}
 
-  async create(createDto: CreateParcelleDto): Promise<Parcelle> {
-    const created = new this.parcelleModel(createDto);
-    return created.save();
+  async create(dto: CreateParcelleDto): Promise<Parcelle> {
+    return this.parcelleRepo.save(this.parcelleRepo.create(dto));
   }
 
   async findAll(query?: {
@@ -23,203 +27,148 @@ export class ParcellesService {
     culture?: string;
     page?: number;
     limit?: number;
-  }): Promise<{
-    data: Parcelle[];
-    meta: { total: number; page: number; limit: number };
-  }> {
-    const filter: any = { deleted: false };
-    if (query?.organisationId) {
-      filter.organisationId = new Types.ObjectId(query.organisationId);
-    }
-    if (query?.technicienId) {
-      filter.technicienId = new Types.ObjectId(query.technicienId);
-    }
-    if (query?.statut) {
-      filter.statut = query.statut;
-    }
-    if (query?.culture) {
-      filter.culture = query.culture;
-    }
-
+  }): Promise<{ data: Parcelle[]; meta: { total: number; page: number; limit: number } }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
-    const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-      this.parcelleModel
-        .find(filter)
-        .sort({ code: 1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.parcelleModel.countDocuments(filter),
-    ]);
+    const qb = this.parcelleRepo
+      .createQueryBuilder('p')
+      .where('p.deleted = false')
+      .orderBy('p.code', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
+    if (query?.organisationId) qb.andWhere('p.organisationId = :org', { org: query.organisationId });
+    if (query?.technicienId) qb.andWhere('p.technicienId = :tech', { tech: query.technicienId });
+    if (query?.statut) qb.andWhere('p.statut = :statut', { statut: query.statut });
+    if (query?.culture) qb.andWhere('p.culture = :culture', { culture: query.culture });
+
+    const [data, total] = await qb.getManyAndCount();
     return { data, meta: { total, page, limit } };
   }
 
   async findById(id: string): Promise<Parcelle> {
-    const parcelle = await this.parcelleModel.findById(id).exec();
-    if (!parcelle) {
-      throw new NotFoundException(`Parcelle with ID ${id} not found`);
-    }
+    const parcelle = await this.parcelleRepo.findOne({ where: { id, deleted: false } });
+    if (!parcelle) throw new NotFoundException(`Parcelle with ID ${id} not found`);
     return parcelle;
   }
 
-  async update(id: string, updateDto: UpdateParcelleDto): Promise<Parcelle> {
-    const updated = await this.parcelleModel
-      .findByIdAndUpdate(id, updateDto, { new: true })
-      .exec();
-    if (!updated) {
-      throw new NotFoundException(`Parcelle with ID ${id} not found`);
-    }
-    return updated;
+  async update(id: string, dto: UpdateParcelleDto): Promise<Parcelle> {
+    const parcelle = await this.findById(id);
+    Object.assign(parcelle, dto);
+    return this.parcelleRepo.save(parcelle);
   }
 
   async remove(id: string): Promise<{ data: boolean }> {
-    // Soft delete
-    const result = await this.parcelleModel
-      .findByIdAndUpdate(id, { deleted: true }, { new: true })
-      .exec();
-    if (!result) {
-      throw new NotFoundException(`Parcelle with ID ${id} not found`);
-    }
+    const result = await this.parcelleRepo.update({ id, deleted: false }, { deleted: true });
+    if (!result.affected) throw new NotFoundException(`Parcelle with ID ${id} not found`);
     return { data: true };
   }
 
   async findStats(organisationId?: string): Promise<ParcelleStats> {
-    const filter: any = { deleted: false };
-    if (organisationId) {
-      filter.organisationId = new Types.ObjectId(organisationId);
-    }
+    const qb = this.parcelleRepo
+      .createQueryBuilder('p')
+      .where('p.deleted = false');
 
-    const total = await this.parcelleModel.countDocuments(filter);
-    const urgentes = await this.parcelleModel.countDocuments({
-      ...filter,
-      statut: "urgent",
-    });
-    const enAttention = await this.parcelleModel.countDocuments({
-      ...filter,
-      statut: "attention",
-    });
-    const result = await this.parcelleModel.aggregate([
-      { $match: filter },
-      { $group: { _id: null, totalHa: { $sum: "$superficie" } } },
+    if (organisationId) qb.andWhere('p.organisationId = :org', { org: organisationId });
+
+    const [total, urgentes, enAttention, sumResult] = await Promise.all([
+      qb.getCount(),
+      qb.clone().andWhere("p.statut = 'urgent'").getCount(),
+      qb.clone().andWhere("p.statut = 'attention'").getCount(),
+      qb.clone().select('SUM(p.superficie)', 'totalHa').getRawOne<{ totalHa: string }>(),
     ]);
-    const totalHa = result[0]?.totalHa || 0;
 
-    return { total, urgentes, enAttention, totalHa };
+    return { total, urgentes, enAttention, totalHa: parseFloat(sumResult?.totalHa || '0') };
   }
 
   async findUrgentes(organisationId?: string): Promise<Parcelle[]> {
-    const filter: any = {
-      deleted: false,
-      statut: { $in: ["urgent", "attention"] },
-    };
-    if (organisationId) {
-      filter.organisationId = new Types.ObjectId(organisationId);
-    }
-    return this.parcelleModel.find(filter).sort({ superficie: -1 }).exec();
+    const qb = this.parcelleRepo
+      .createQueryBuilder('p')
+      .where('p.deleted = false')
+      .andWhere("p.statut IN ('urgent', 'attention')")
+      .orderBy('p.superficie', 'DESC');
+
+    if (organisationId) qb.andWhere('p.organisationId = :org', { org: organisationId });
+    return qb.getMany();
   }
 
-  async findNearby(
-    lat: number,
-    lng: number,
-    rayon: number,
-  ): Promise<Parcelle[]> {
-    return this.parcelleModel
-      .find({
-        deleted: false,
-        centroid: {
-          $near: {
-            $geometry: { type: "Point", coordinates: [lng, lat] },
-            $maxDistance: rayon,
-          },
-        },
-      })
-      .exec();
+  async findNearby(lat: number, lng: number, rayon: number): Promise<Parcelle[]> {
+    return this.parcelleRepo
+      .createQueryBuilder('p')
+      .where('p.deleted = false')
+      .andWhere(
+        `ST_DWithin(
+          ST_GeomFromGeoJSON(p.centroid::text)::geography,
+          ST_MakePoint(:lng, :lat)::geography,
+          :rayon
+        )`,
+        { lng, lat, rayon },
+      )
+      .getMany();
   }
 
   async findByCode(code: string): Promise<Parcelle | null> {
-    return this.parcelleModel.findOne({ code, deleted: false }).exec();
+    return this.parcelleRepo.findOne({ where: { code, deleted: false } });
   }
 
   async getGeoJSON(): Promise<any> {
-    const parcelles = await this.parcelleModel.find({ deleted: false }).exec();
+    const parcelles = await this.parcelleRepo.find({ where: { deleted: false } });
     return {
-      type: "FeatureCollection",
+      type: 'FeatureCollection',
       features: parcelles.map((p) => ({
-        type: "Feature",
+        type: 'Feature',
         geometry: p.boundary,
-        properties: {
-          id: p.id,
-          code: p.code,
-          nom: p.nom,
-          superficie: p.superficie,
-          culture: p.culture,
-          statut: p.statut,
-        },
+        properties: { id: p.id, code: p.code, nom: p.nom, superficie: p.superficie, culture: p.culture, statut: p.statut },
       })),
     };
   }
 
   async getVisites(parcelleId: string): Promise<any[]> {
-    const { Visite } = await import("../visites/schemas/visite.schema");
-    const VisiteModel = this.parcelleModel.db.model(Visite.name);
-    return VisiteModel.find({ parcelleId: new Types.ObjectId(parcelleId) })
-      .sort({ date: -1 })
-      .exec();
+    const { Visite } = await import('../visites/entities/visite.entity');
+    return this.dataSource.getRepository(Visite).find({
+      where: { parcelleId },
+      order: { date: 'DESC' },
+    });
   }
 
   async getTaches(parcelleId: string): Promise<any[]> {
-    const { Tache } = await import("../taches/schemas/tache.schema");
-    const TacheModel = this.parcelleModel.db.model(Tache.name);
-    return TacheModel.find({
-      parcelleId: new Types.ObjectId(parcelleId),
-    }).exec();
+    const { Tache } = await import('../taches/entities/tache.entity');
+    return this.dataSource.getRepository(Tache).find({ where: { parcelleId } });
   }
 
   async getCampagnes(parcelleId: string): Promise<any[]> {
-    const { Campagne } = await import("../campagnes/schemas/campagne.schema");
-    const CampagneModel = this.parcelleModel.db.model(Campagne.name);
-    return CampagneModel.find({
-      parcelleIds: new Types.ObjectId(parcelleId),
-    })
-      .sort({ dateDebut: -1 })
-      .exec();
+    const { Campagne } = await import('../campagnes/entities/campagne.entity');
+    return this.dataSource
+      .getRepository(Campagne)
+      .createQueryBuilder('c')
+      .where(`c."parcelleIds" @> :ids::jsonb`, { ids: JSON.stringify([parcelleId]) })
+      .orderBy('c.dateDebut', 'DESC')
+      .getMany();
   }
 
   async getRecoltes(parcelleId: string): Promise<any[]> {
-    const { Recolte } = await import("../recoltes/schemas/recolte.schema");
-    const RecolteModel = this.parcelleModel.db.model(Recolte.name);
-    return RecolteModel.find({ parcelleId: new Types.ObjectId(parcelleId) })
-      .sort({ dateRecolte: -1 })
-      .exec();
+    const { Recolte } = await import('../recoltes/entities/recolte.entity');
+    return this.dataSource.getRepository(Recolte).find({
+      where: { parcelleId },
+      order: { dateRecolte: 'DESC' },
+    });
   }
 
   async getNdvi(parcelleId: string): Promise<any[]> {
-    const { NdviData } = await import("../ndvi/schemas/ndvi.schema");
-    const NdviModel = this.parcelleModel.db.model(NdviData.name);
-    return NdviModel.find({ parcelleId: new Types.ObjectId(parcelleId) })
-      .sort({ date: -1 })
-      .exec();
-  }
-
-  async createPoi(parcelleId: string, data: any): Promise<any> {
-    const { FieldPoi } = await import("./schemas/field-poi.schema");
-    const FieldPoiModel = this.parcelleModel.db.model(FieldPoi.name);
-    const poi = new FieldPoiModel({
-      ...data,
-      parcelleId: new Types.ObjectId(parcelleId),
+    const { NdviData } = await import('../ndvi/entities/ndvi-data.entity');
+    return this.dataSource.getRepository(NdviData).find({
+      where: { parcelleId },
+      order: { date: 'DESC' },
+      take: 20,
     });
-    return poi.save();
   }
 
-  async getPois(parcelleId: string): Promise<any[]> {
-    const { FieldPoi } = await import("./schemas/field-poi.schema");
-    const FieldPoiModel = this.parcelleModel.db.model(FieldPoi.name);
-    return FieldPoiModel.find({
-      parcelleId: new Types.ObjectId(parcelleId),
-    }).exec();
+  async createPoi(parcelleId: string, data: any): Promise<FieldPoi> {
+    return this.fieldPoiRepo.save(this.fieldPoiRepo.create({ ...data, parcelleId }));
+  }
+
+  async getPois(parcelleId: string): Promise<FieldPoi[]> {
+    return this.fieldPoiRepo.find({ where: { parcelleId } });
   }
 }

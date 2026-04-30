@@ -1,22 +1,13 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { SyncController } from "./sync.controller";
-import { SyncService } from "./sync.service";
-import { AgroRule, AgroRuleSchema } from "./schemas/agro-rule.schema";
-import {
-  ExpertRequest,
-  ExpertRequestSchema,
-} from "./schemas/expert-request.schema";
-import { Parcelle, ParcelleSchema } from "../parcelles/schemas/parcelle.schema";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SyncController } from './sync.controller';
+import { SyncService } from './sync.service';
+import { AgroRule } from './entities/agro-rule.entity';
+import { ExpertRequest } from './entities/expert-request.entity';
+import { Parcelle } from '../parcelles/entities/parcelle.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: AgroRule.name, schema: AgroRuleSchema },
-      { name: ExpertRequest.name, schema: ExpertRequestSchema },
-      { name: Parcelle.name, schema: ParcelleSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([AgroRule, ExpertRequest, Parcelle])],
   controllers: [SyncController],
   providers: [SyncService],
   exports: [SyncService],
