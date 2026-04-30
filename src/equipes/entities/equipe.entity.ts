@@ -5,18 +5,18 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('equipes')
-@Index(['organisationId'])
+@Entity("equipes")
+@Index(["organisationId"])
 export class Equipe {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
   nom: string;
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ nullable: true, type: "text" })
   description: string;
 
   @Column({ nullable: true })

@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { Controller, Get, Post, Body, Query } from "@nestjs/common";
+import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { SyncService } from "./sync.service";
 
 @ApiTags("Sync (Flutter)")

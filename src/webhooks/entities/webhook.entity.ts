@@ -5,12 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('webhooks')
-@Index(['organisationId'])
+@Entity("webhooks")
+@Index(["organisationId"])
 export class Webhook {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
@@ -20,14 +20,14 @@ export class Webhook {
   url: string;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: [
-      'recolte.created',
-      'recolte.validated',
-      'visite.completed',
-      'parcelle.created',
-      'ndvi.alerte',
-      'campagne.terminee',
+      "recolte.created",
+      "recolte.validated",
+      "visite.completed",
+      "parcelle.created",
+      "ndvi.alerte",
+      "campagne.terminee",
     ],
   })
   evenement: string;

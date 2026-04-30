@@ -7,14 +7,14 @@ import {
   Index,
   BeforeInsert,
   BeforeUpdate,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('parcelles')
-@Index(['organisationId', 'statut', 'culture'])
-@Index(['technicienId', 'statut'])
-@Index(['deleted', 'organisationId'])
+@Entity("parcelles")
+@Index(["organisationId", "statut", "culture"])
+@Index(["technicienId", "statut"])
+@Index(["deleted", "organisationId"])
 export class Parcelle {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column({ unique: true })
@@ -32,13 +32,13 @@ export class Parcelle {
   @Column({ nullable: true })
   localite: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   boundary: object;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   centroid: object;
 
-  @Column({ type: 'float' })
+  @Column({ type: "float" })
   superficie: number;
 
   @Column({ nullable: true })
@@ -48,29 +48,38 @@ export class Parcelle {
   typesSol: string;
 
   @Column({
-    type: 'enum',
-    enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate', 'autre'],
+    type: "enum",
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate", "autre"],
     nullable: true,
   })
   culture: string;
 
   @Column({
-    type: 'enum',
-    enum: ['semis', 'levee', 'vegetative', 'tallage', 'floraison', 'fruiting', 'maturation', 'recolte'],
+    type: "enum",
+    enum: [
+      "semis",
+      "levee",
+      "vegetative",
+      "tallage",
+      "floraison",
+      "fruiting",
+      "maturation",
+      "recolte",
+    ],
     nullable: true,
   })
   stade: string;
 
   @Column({
-    type: 'enum',
-    enum: ['sain', 'attention', 'urgent', 'recolte'],
-    default: 'sain',
+    type: "enum",
+    enum: ["sain", "attention", "urgent", "recolte"],
+    default: "sain",
   })
   statut: string;
 
   @Column({
-    type: 'enum',
-    enum: ['hivernage', 'contre_saison_froide', 'contre_saison_chaude'],
+    type: "enum",
+    enum: ["hivernage", "contre_saison_froide", "contre_saison_chaude"],
     nullable: true,
   })
   typeCampagne: string;
@@ -85,15 +94,15 @@ export class Parcelle {
   densite: string;
 
   @Column({
-    type: 'enum',
-    enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate'],
+    type: "enum",
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate"],
     nullable: true,
   })
   culturePrecedente: string;
 
   @Column({
-    type: 'enum',
-    enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate'],
+    type: "enum",
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate"],
     nullable: true,
   })
   rotationPrevue: string;
@@ -111,8 +120,8 @@ export class Parcelle {
   sourceEau: string;
 
   @Column({
-    type: 'enum',
-    enum: ['propriete', 'pret', 'location', 'communautaire'],
+    type: "enum",
+    enum: ["propriete", "pret", "location", "communautaire"],
     nullable: true,
   })
   modeAccesTerre: string;
@@ -126,10 +135,10 @@ export class Parcelle {
   @Column({ nullable: true })
   equipeId: string;
 
-  @Column({ type: 'float', default: 0 })
+  @Column({ type: "float", default: 0 })
   healthScore: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: "float", nullable: true })
   rendementPrecedent: number;
 
   @Column({ nullable: true })
@@ -152,12 +161,12 @@ export class Parcelle {
   computeCentroid() {
     if (this.boundary) {
       const b = this.boundary as any;
-      if (b?.type === 'Polygon' && b.coordinates?.[0]?.length > 0) {
+      if (b?.type === "Polygon" && b.coordinates?.[0]?.length > 0) {
         const ring: [number, number][] = b.coordinates[0];
         const n = ring.length - 1;
         const lng = ring.slice(0, n).reduce((s, c) => s + c[0], 0) / n;
         const lat = ring.slice(0, n).reduce((s, c) => s + c[1], 0) / n;
-        this.centroid = { type: 'Point', coordinates: [lng, lat] };
+        this.centroid = { type: "Point", coordinates: [lng, lat] };
       }
     }
   }

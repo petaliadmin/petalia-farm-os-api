@@ -1,0 +1,33 @@
+﻿npm : npm verbose cli C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js
+Au caractère Ligne:1 : 1
++ npm test -- --passWithNoTests --forceExit --runInBand 2>&1 | Out-File ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm verbose cli...\bin\npm-cli.js:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm info using npm@10.8.2
+npm info using node@v20.19.5
+npm verbose title npm test --passWithNoTests --forceExit --runInBand
+npm verbose argv "test" "--" "--passWithNoTests" "--forceExit" "--runInBand"
+npm verbose logfile logs-max:10 dir:C:\Users\a844699\AppData\Local\npm-cache\_logs\2026-04-30T21_14_09_310Z-
+npm verbose logfile C:\Users\a844699\AppData\Local\npm-cache\_logs\2026-04-30T21_14_09_310Z-debug-0.log
+
+> petalia-backend@2.0.0 test
+> jest --passWithNoTests --forceExit --runInBand
+
+PASS src/users/users.controller.spec.ts (19.873 s)
+PASS src/users/users.service.spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+Snapshots:   0 total
+Time:        23.244 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after 
+all tests finished?
+npm verbose cwd C:\Developement\petalia-farm-os-api
+npm verbose os Windows_NT 10.0.26100
+npm verbose node v20.19.5
+npm verbose npm  v10.8.2
+npm verbose exit 0
+npm info ok

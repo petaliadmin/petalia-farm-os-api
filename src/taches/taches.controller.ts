@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { TachesService } from "./taches.service";
 import { CreateTacheDto, UpdateTacheDto } from "./dto/taches.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";

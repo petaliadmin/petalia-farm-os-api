@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Equipe } from './entities/equipe.entity';
-import { UsersService } from '../users/users.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Equipe } from "./entities/equipe.entity";
+import { UsersService } from "../users/users.service";
 
 @Injectable()
 export class EquipesService {
@@ -16,14 +16,19 @@ export class EquipesService {
     organisationId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ data: Equipe[]; meta: { total: number; page: number; limit: number } }> {
+  }): Promise<{
+    data: Equipe[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
-    const where = query?.organisationId ? { organisationId: query.organisationId } : {};
+    const where = query?.organisationId
+      ? { organisationId: query.organisationId }
+      : {};
 
     const [data, total] = await this.equipeRepo.findAndCount({
       where,
-      order: { nom: 'ASC' },
+      order: { nom: "ASC" },
       skip: (page - 1) * limit,
       take: limit,
     });

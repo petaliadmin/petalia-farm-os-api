@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Param, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { MeteoService } from "./meteo.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 

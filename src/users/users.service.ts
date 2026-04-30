@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
-import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "./entities/user.entity";
+import { CreateUserDto, UpdateUserDto } from "./dto/users.dto";
 
 @Injectable()
 export class UsersService {
@@ -28,17 +28,22 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepo
-      .createQueryBuilder('u')
-      .addSelect(['u.passwordHash', 'u.refreshTokenHash', 'u.otpCode', 'u.loginAttempts'])
-      .where('u.email = :email', { email })
+      .createQueryBuilder("u")
+      .addSelect([
+        "u.passwordHash",
+        "u.refreshTokenHash",
+        "u.otpCode",
+        "u.loginAttempts",
+      ])
+      .where("u.email = :email", { email })
       .getOne();
   }
 
   async findByPhone(phone: string): Promise<User | null> {
     return this.userRepo
-      .createQueryBuilder('u')
-      .addSelect(['u.passwordHash', 'u.otpCode'])
-      .where('u.phone = :phone', { phone })
+      .createQueryBuilder("u")
+      .addSelect(["u.passwordHash", "u.otpCode"])
+      .where("u.phone = :phone", { phone })
       .getOne();
   }
 
@@ -50,7 +55,8 @@ export class UsersService {
 
   async remove(id: string): Promise<void> {
     const result = await this.userRepo.delete(id);
-    if (!result.affected) throw new NotFoundException(`User with ID ${id} not found`);
+    if (!result.affected)
+      throw new NotFoundException(`User with ID ${id} not found`);
   }
 
   async findByEquipage(equipeId: string): Promise<User[]> {
@@ -58,7 +64,7 @@ export class UsersService {
   }
 
   async findTechniciens(organisationId?: string): Promise<User[]> {
-    const where: any = { role: 'technicien', actif: true };
+    const where: any = { role: "technicien", actif: true };
     if (organisationId) where.organisationId = organisationId;
     return this.userRepo.find({ where });
   }

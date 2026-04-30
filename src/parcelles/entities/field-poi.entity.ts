@@ -5,12 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('field_pois')
-@Index(['parcelleId'])
+@Entity("field_pois")
+@Index(["parcelleId"])
 export class FieldPoi {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
@@ -20,13 +20,13 @@ export class FieldPoi {
   nom: string;
 
   @Column({
-    type: 'enum',
-    enum: ['puits', 'forage', 'bassin', 'canal', 'depot', 'bati', 'autre'],
+    type: "enum",
+    enum: ["puits", "forage", "bassin", "canal", "depot", "bati", "autre"],
     nullable: true,
   })
   type: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   location: object;
 
   @Column({ nullable: true })

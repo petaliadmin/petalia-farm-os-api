@@ -5,27 +5,27 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('notifications')
-@Index(['userId', 'lue', 'createdAt'])
+@Entity("notifications")
+@Index(["userId", "lue", "createdAt"])
 export class Notification {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
   userId: string;
 
   @Column({
-    type: 'enum',
-    enum: ['alerte', 'avertissement', 'succes', 'info'],
+    type: "enum",
+    enum: ["alerte", "avertissement", "succes", "info"],
   })
   type: string;
 
   @Column()
   titre: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   message: string;
 
   @Column({ default: false })

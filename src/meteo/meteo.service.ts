@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class MeteoService {
-  async getByCoordinates(lat: number, lng: number) {
+  async getByCoordinates(_lat: number, _lng: number) {
     // In production, would call OpenWeatherMap API
     return {
       data: {
@@ -16,7 +16,7 @@ export class MeteoService {
     };
   }
 
-  async getByVille(ville: string) {
+  async getByVille(_ville: string) {
     return {
       data: {
         temperature: 28,
@@ -28,7 +28,7 @@ export class MeteoService {
     };
   }
 
-  async getPrevisions(ville: string) {
+  async getPrevisions(_ville: string) {
     return {
       data: [
         { jour: "Lun", tempMax: 32, tempMin: 24, icon: "01d" },

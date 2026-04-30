@@ -5,12 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('ndvi_data')
-@Index(['parcelleId', 'date'])
+@Entity("ndvi_data")
+@Index(["parcelleId", "date"])
 export class NdviData {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
@@ -19,22 +19,22 @@ export class NdviData {
   @Column()
   date: Date;
 
-  @Column({ type: 'float' })
+  @Column({ type: "float" })
   ndviMoyen: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: "float", nullable: true })
   ndviMin: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: "float", nullable: true })
   ndviMax: number;
 
-  @Column({ type: 'int', default: 10 })
+  @Column({ type: "int", default: 10 })
   resolution: number;
 
-  @Column({ default: 'sentinel-2' })
+  @Column({ default: "sentinel-2" })
   source: string;
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: "jsonb", default: [] })
   zones: { lat: number; lng: number; valeur: number }[];
 
   @Column({ nullable: true })
@@ -43,7 +43,7 @@ export class NdviData {
   @Column({ nullable: true })
   imageUrl: string;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: "float", nullable: true })
   cloudCoverage: number;
 
   @CreateDateColumn()

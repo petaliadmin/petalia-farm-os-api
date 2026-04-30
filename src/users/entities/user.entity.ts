@@ -5,13 +5,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('users')
-@Index(['organisationId', 'role'])
-@Index(['equipeId'])
+@Entity("users")
+@Index(["organisationId", "role"])
+@Index(["equipeId"])
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column({ unique: true, nullable: true })
@@ -30,9 +30,9 @@ export class User {
   prenom: string;
 
   @Column({
-    type: 'enum',
-    enum: ['directeur', 'superviseur', 'technicien', 'admin', 'partenaire'],
-    default: 'technicien',
+    type: "enum",
+    enum: ["directeur", "superviseur", "technicien", "admin", "partenaire"],
+    default: "technicien",
   })
   role: string;
 
@@ -66,7 +66,7 @@ export class User {
   @Column({ unique: true, nullable: true, select: false })
   apiKeyHash: string;
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: "jsonb", default: [] })
   apiScopes: string[];
 
   @Column({ nullable: true })

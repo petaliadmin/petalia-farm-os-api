@@ -5,14 +5,14 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('visites')
-@Index(['parcelleId', 'date'])
-@Index(['technicienId', 'statut'])
-@Index(['organisationId', 'date'])
+@Entity("visites")
+@Index(["parcelleId", "date"])
+@Index(["technicienId", "statut"])
+@Index(["organisationId", "date"])
 export class Visite {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
@@ -25,9 +25,9 @@ export class Visite {
   date: Date;
 
   @Column({
-    type: 'enum',
-    enum: ['planifiee', 'en_cours', 'completee', 'annulee'],
-    default: 'planifiee',
+    type: "enum",
+    enum: ["planifiee", "en_cours", "completee", "annulee"],
+    default: "planifiee",
   })
   statut: string;
 
@@ -43,29 +43,29 @@ export class Visite {
   @Column({ nullable: true })
   objectif: string;
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ nullable: true, type: "text" })
   observations: string;
 
   @Column({
-    type: 'enum',
-    enum: ['normale', 'stress', 'maladie', 'ravageur', 'carence', 'autre'],
+    type: "enum",
+    enum: ["normale", "stress", "maladie", "ravageur", "carence", "autre"],
     nullable: true,
   })
   etatGeneral: string;
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: "jsonb", default: [] })
   observationsDetaillees: string[];
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ nullable: true, type: "text" })
   recommandations: string;
 
   @Column({ nullable: true })
   prochainAction: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   gpsLocation: object;
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: "jsonb", default: [] })
   photos: string[];
 
   @Column({ nullable: true })

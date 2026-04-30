@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class RapportsService {
-  async getKpis(periode: "semaine" | "mois" | "saison" = "mois") {
+  async getKpis(_periode: "semaine" | "mois" | "saison" = "mois") {
     // In production, these would be aggregated from MongoDB
     return {
       data: {
@@ -44,7 +44,11 @@ export class RapportsService {
     };
   }
 
-  async exportRapport(data: { format: string; type: string; periode: string }) {
+  async exportRapport(_data: {
+    format: string;
+    type: string;
+    periode: string;
+  }) {
     // In production, this would generate a PDF via PDFKit
     return {
       data: {

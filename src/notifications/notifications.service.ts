@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { LessThan, Repository } from 'typeorm';
-import { Notification } from './entities/notification.entity';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { LessThan, Repository } from "typeorm";
+import { Notification } from "./entities/notification.entity";
 
 @Injectable()
 export class NotificationsService {
@@ -18,13 +18,16 @@ export class NotificationsService {
   async findAll(
     userId: string,
     query?: { page?: number; limit?: number },
-  ): Promise<{ data: Notification[]; meta: { total: number; page: number; limit: number } }> {
+  ): Promise<{
+    data: Notification[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
 
     const [data, total] = await this.notifRepo.findAndCount({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -35,7 +38,7 @@ export class NotificationsService {
   async findNonLues(userId: string): Promise<Notification[]> {
     return this.notifRepo.find({
       where: { userId, lue: false },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -51,14 +54,20 @@ export class NotificationsService {
     return this.notifRepo.save(notif);
   }
 
-  async marquerToutesLues(userId: string): Promise<{ data: { updated: number } }> {
-    const result = await this.notifRepo.update({ userId, lue: false }, { lue: true });
+  async marquerToutesLues(
+    userId: string,
+  ): Promise<{ data: { updated: number } }> {
+    const result = await this.notifRepo.update(
+      { userId, lue: false },
+      { lue: true },
+    );
     return { data: { updated: result.affected || 0 } };
   }
 
   async remove(id: string): Promise<{ data: boolean }> {
     const result = await this.notifRepo.delete(id);
-    if (!result.affected) throw new NotFoundException(`Notification ${id} non trouvée`);
+    if (!result.affected)
+      throw new NotFoundException(`Notification ${id} non trouvée`);
     return { data: true };
   }
 

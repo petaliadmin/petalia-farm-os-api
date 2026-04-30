@@ -5,22 +5,22 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('mouvements')
-@Index(['intrantId', 'date'])
-@Index(['parcelleId', 'date'])
+@Entity("mouvements")
+@Index(["intrantId", "date"])
+@Index(["parcelleId", "date"])
 export class Mouvement {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
   intrantId: string;
 
-  @Column({ type: 'enum', enum: ['entree', 'sortie'] })
+  @Column({ type: "enum", enum: ["entree", "sortie"] })
   type: string;
 
-  @Column({ type: 'float' })
+  @Column({ type: "float" })
   quantite: number;
 
   @Column({ nullable: true })

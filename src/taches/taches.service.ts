@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Tache } from './entities/tache.entity';
-import { CreateTacheDto, UpdateTacheDto } from './dto/taches.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Tache } from "./entities/tache.entity";
+import { CreateTacheDto, UpdateTacheDto } from "./dto/taches.dto";
 
 export interface TacheStats {
   total: number;
@@ -27,19 +27,24 @@ export class TachesService {
     assigneeId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ data: Tache[]; meta: { total: number; page: number; limit: number } }> {
+  }): Promise<{
+    data: Tache[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
 
     const qb = this.tacheRepo
-      .createQueryBuilder('t')
-      .orderBy('t.priorite', 'DESC')
-      .addOrderBy('t.datePlanifiee', 'ASC')
+      .createQueryBuilder("t")
+      .orderBy("t.priorite", "DESC")
+      .addOrderBy("t.datePlanifiee", "ASC")
       .skip((page - 1) * limit)
       .take(limit);
 
-    if (query?.statut) qb.andWhere('t.statut = :statut', { statut: query.statut });
-    if (query?.assigneeId) qb.andWhere('t.assigneAId = :aid', { aid: query.assigneeId });
+    if (query?.statut)
+      qb.andWhere("t.statut = :statut", { statut: query.statut });
+    if (query?.assigneeId)
+      qb.andWhere("t.assigneAId = :aid", { aid: query.assigneeId });
 
     const [data, total] = await qb.getManyAndCount();
     return { data, meta: { total, page, limit } };
@@ -60,18 +65,19 @@ export class TachesService {
   async updateStatut(id: string, statut: string): Promise<Tache> {
     const tache = await this.findById(id);
     tache.statut = statut;
-    if (statut === 'done') tache.dateTerminee = new Date();
+    if (statut === "done") tache.dateTerminee = new Date();
     return this.tacheRepo.save(tache);
   }
 
   async remove(id: string): Promise<{ data: boolean }> {
     const result = await this.tacheRepo.delete(id);
-    if (!result.affected) throw new NotFoundException(`Tache ${id} non trouvée`);
+    if (!result.affected)
+      throw new NotFoundException(`Tache ${id} non trouvée`);
     return { data: true };
   }
 
   async getStats(): Promise<TacheStats> {
-    const base = this.tacheRepo.createQueryBuilder('t');
+    const base = this.tacheRepo.createQueryBuilder("t");
     const [total, urgentes, enCours, terminees] = await Promise.all([
       base.clone().getCount(),
       base.clone().andWhere("t.priorite = 'urgente'").getCount(),
@@ -83,18 +89,39 @@ export class TachesService {
 
   async findUrgentes(): Promise<Tache[]> {
     return this.tacheRepo
-      .createQueryBuilder('t')
+      .createQueryBuilder("t")
       .where("t.priorite = 'urgente'")
       .andWhere("t.statut != 'done'")
       .getMany();
   }
 
-  async getKanban(): Promise<{ todo: Tache[]; en_cours: Tache[]; done: Tache[]; reporte: Tache[] }> {
+  async getKanban(): Promise<{
+    todo: Tache[];
+    en_cours: Tache[];
+    done: Tache[];
+    reporte: Tache[];
+  }> {
     const [todo, en_cours, done, reporte] = await Promise.all([
-      this.tacheRepo.find({ where: { statut: 'todo' }, order: { priorite: 'DESC', datePlanifiee: 'ASC' }, take: 20 }),
-      this.tacheRepo.find({ where: { statut: 'en_cours' }, order: { datePlanifiee: 'ASC' }, take: 20 }),
-      this.tacheRepo.find({ where: { statut: 'done' }, order: { dateTerminee: 'DESC' }, take: 20 }),
-      this.tacheRepo.find({ where: { statut: 'reporte' }, order: { datePlanifiee: 'ASC' }, take: 20 }),
+      this.tacheRepo.find({
+        where: { statut: "todo" },
+        order: { priorite: "DESC", datePlanifiee: "ASC" },
+        take: 20,
+      }),
+      this.tacheRepo.find({
+        where: { statut: "en_cours" },
+        order: { datePlanifiee: "ASC" },
+        take: 20,
+      }),
+      this.tacheRepo.find({
+        where: { statut: "done" },
+        order: { dateTerminee: "DESC" },
+        take: 20,
+      }),
+      this.tacheRepo.find({
+        where: { statut: "reporte" },
+        order: { datePlanifiee: "ASC" },
+        take: 20,
+      }),
     ]);
     return { todo, en_cours, done, reporte };
   }

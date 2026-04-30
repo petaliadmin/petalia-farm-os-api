@@ -5,10 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('expert_requests')
-@Index(['createdAt'])
+@Entity("expert_requests")
+@Index(["createdAt"])
 export class ExpertRequest {
   @PrimaryColumn()
   id: string;
@@ -16,23 +16,23 @@ export class ExpertRequest {
   @Column()
   parcelId: string;
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: "jsonb", default: [] })
   photoPaths: string[];
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   context: string;
 
   @Column({ nullable: true })
   remoteId: string;
 
   @Column({
-    type: 'enum',
-    enum: ['queued', 'sent', 'received', 'answered'],
-    default: 'queued',
+    type: "enum",
+    enum: ["queued", "sent", "received", "answered"],
+    default: "queued",
   })
   status: string;
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ nullable: true, type: "text" })
   answer: string;
 
   @Column({ nullable: true })

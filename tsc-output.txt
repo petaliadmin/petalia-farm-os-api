@@ -1,0 +1,52 @@
+﻿npx : npm verbose cli C:\nvm4w\nodejs\node.exe 
+C:\Users\a844699\AppData\Local\nvm\v20.19.5\node_modules\npm\bin\npm-cli.js
+Au caractère Ligne:1 : 1
++ npx tsc --noEmit 2>&1 | Out-File -FilePath tsc-output.txt -Encoding u ...
++ ~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm verbose cli...\bin\npm-cli.js:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm info using npm@10.8.2
+npm info using node@v20.19.5
+npm verbose title npm exec tsc --noEmit
+npm verbose argv "exec" "--" "tsc" "--noEmit"
+npm verbose logfile logs-max:10 dir:C:\Users\a844699\AppData\Local\npm-cache\_logs\2026-04-30T21_14_56_697Z-
+npm verbose logfile C:\Users\a844699\AppData\Local\npm-cache\_logs\2026-04-30T21_14_56_697Z-debug-0.log
+src/campagnes/schemas/campagne.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/campagnes/schemas/campagne.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/equipes/schemas/equipe.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/equipes/schemas/equipe.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/intrants/schemas/intrant.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/intrants/schemas/intrant.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/intrants/schemas/mouvement.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/intrants/schemas/mouvement.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/ndvi/schemas/ndvi.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/ndvi/schemas/ndvi.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/notifications/schemas/notification.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/notifications/schemas/notification.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/parcelles/parcelles.service.ts(207,5): error TS2740: Type 'FieldPoi[]' is missing the following properties from type 'FieldPoi': id, parcelleId, nom, type, and 4 more.
+src/parcelles/schemas/field-poi.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/parcelles/schemas/field-poi.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/parcelles/schemas/parcelle.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/parcelles/schemas/parcelle.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/recoltes/schemas/recolte.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/recoltes/schemas/recolte.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/sync/schemas/agro-rule.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/sync/schemas/agro-rule.schema.ts(2,26): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/sync/schemas/expert-request.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/sync/schemas/expert-request.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/sync/sync.service.ts(37,19): error TS2339: Property 'id' does not exist on type 'ExpertRequest[]'.
+src/taches/schemas/tache.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/taches/schemas/tache.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/users/schemas/user.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/users/schemas/user.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/visites/schemas/visite.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/visites/schemas/visite.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/webhooks/schemas/webhook.schema.ts(1,45): error TS2307: Cannot find module '@nestjs/mongoose' or its corresponding type declarations.
+src/webhooks/schemas/webhook.schema.ts(2,33): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+npm verbose cwd C:\Developement\petalia-farm-os-api
+npm verbose os Windows_NT 10.0.26100
+npm verbose node v20.19.5
+npm verbose npm  v10.8.2
+npm verbose exit 2
+npm verbose code 2

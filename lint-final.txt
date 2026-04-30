@@ -1,0 +1,118 @@
+﻿npm : npm verbose cli C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js
+Au caractère Ligne:1 : 1
++ npm run lint 2>&1 | Out-File -FilePath lint-final.txt -Encoding utf8; ...
++ ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm verbose cli...\bin\npm-cli.js:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm info using npm@10.8.2
+npm info using node@v20.19.5
+npm verbose title npm run lint
+npm verbose argv "run" "lint"
+npm verbose logfile logs-max:10 dir:C:\Users\a844699\AppData\Local\npm-cache\_logs\2026-04-30T21_12_12_520Z-
+npm verbose logfile C:\Users\a844699\AppData\Local\npm-cache\_logs\2026-04-30T21_12_12_520Z-debug-0.log
+
+> petalia-backend@2.0.0 lint
+> eslint "{src,apps,libs,test}/**/*.ts" --fix
+
+
+C:\Developement\petalia-farm-os-api\src\auth\auth.controller.ts
+  36:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\auth\auth.service.ts
+  116:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\auth\strategies\jwt.strategy.ts
+  20:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\auth\strategies\local.strategy.ts
+  12:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\campagnes\campagnes.controller.ts
+  45:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\campagnes\campagnes.service.ts
+   95:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\equipes\equipes.controller.ts
+  45:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\equipes\equipes.service.ts
+  60:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\interop\interop.controller.ts
+  35:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  47:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\interop\interop.service.ts
+  35:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  75:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\notifications\notifications.controller.ts
+  26:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\parcelles\entities\parcelle.entity.ts
+  163:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\parcelles\parcelles.controller.ts
+  133:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\parcelles\parcelles.service.ts
+  143:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  164:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  189:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  197:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  206:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\sync\sync.controller.ts
+  18:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\sync\sync.service.ts
+   31:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   45:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   46:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   76:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\users\users.service.spec.ts
+  25:41  error  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Developement\petalia-farm-os-api\src\users\users.service.ts
+  67:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Developement\petalia-farm-os-api\src\webhooks\webhooks.controller.ts
+  33:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 54 problems (1 error, 53 warnings)
+
+npm verbose cwd C:\Developement\petalia-farm-os-api
+npm verbose os Windows_NT 10.0.26100
+npm verbose node v20.19.5
+npm verbose npm  v10.8.2
+npm verbose exit 1
+npm verbose code 1

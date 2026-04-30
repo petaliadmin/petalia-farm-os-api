@@ -5,20 +5,20 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('taches')
-@Index(['parcelleId', 'statut'])
-@Index(['assigneAId', 'statut'])
-@Index(['organisationId', 'priorite', 'statut'])
+@Entity("taches")
+@Index(["parcelleId", "statut"])
+@Index(["assigneAId", "statut"])
+@Index(["organisationId", "priorite", "statut"])
 export class Tache {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
   @Column()
   titre: string;
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ nullable: true, type: "text" })
   description: string;
 
   @Column()
@@ -37,16 +37,16 @@ export class Tache {
   organisationId: string;
 
   @Column({
-    type: 'enum',
-    enum: ['todo', 'en_cours', 'done', 'reporte'],
-    default: 'todo',
+    type: "enum",
+    enum: ["todo", "en_cours", "done", "reporte"],
+    default: "todo",
   })
   statut: string;
 
   @Column({
-    type: 'enum',
-    enum: ['basse', 'normale', 'haute', 'urgente'],
-    default: 'normale',
+    type: "enum",
+    enum: ["basse", "normale", "haute", "urgente"],
+    default: "normale",
   })
   priorite: string;
 

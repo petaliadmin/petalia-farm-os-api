@@ -64,7 +64,7 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string): Promise<void> {
+  async logout(_userId: string): Promise<void> {
     // Fire-and-forget logout for Angular
     // Could invalidate token in Redis here if needed
   }

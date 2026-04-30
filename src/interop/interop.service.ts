@@ -32,7 +32,7 @@ export class InteropService {
     return { indexId, index: 0.72 };
   }
 
-  async declareSinistre(data: any) {
+  async declareSinistre(_data: any) {
     return { id: "sin-001", status: "recu" };
   }
 
@@ -54,11 +54,11 @@ export class InteropService {
     };
   }
 
-  async creditNotification(data: any) {
+  async creditNotification(_data: any) {
     return { received: true };
   }
 
-  async indemnisationWebhook(data: any) {
+  async indemnisationWebhook(_data: any) {
     return { received: true };
   }
 
@@ -72,7 +72,7 @@ export class InteropService {
     };
   }
 
-  async declarationCampagne(data: any) {
+  async declarationCampagne(_data: any) {
     return { id: "decl-001", status: "recue" };
   }
 }

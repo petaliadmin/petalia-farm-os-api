@@ -5,43 +5,43 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-} from 'typeorm';
+} from "typeorm";
 
-@Entity('agro_rules')
-@Index(['updatedAt'])
-@Index(['crop', 'symptom', 'actif'])
+@Entity("agro_rules")
+@Index(["updatedAt"])
+@Index(["crop", "symptom", "actif"])
 export class AgroRule {
   @PrimaryColumn()
   id: string;
 
   @Column({
-    type: 'enum',
-    enum: ['riz', 'mais', 'mil', 'arachide', 'oignon', 'tomate', '*'],
+    type: "enum",
+    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate", "*"],
   })
   crop: string;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: "jsonb" })
   stages: string[];
 
   @Column()
   symptom: string;
 
   @Column({
-    type: 'enum',
-    enum: ['hivernage', 'contre_saison', '*'],
+    type: "enum",
+    enum: ["hivernage", "contre_saison", "*"],
   })
   season: string;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: "jsonb" })
   regions: string[];
 
-  @Column({ type: 'float', default: 0 })
+  @Column({ type: "float", default: 0 })
   severityMin: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   diagnosis: string;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: "jsonb" })
   recommendation: {
     title: string;
     actions: string[];

@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Recolte } from './entities/recolte.entity';
-import { CreateRecolteDto, UpdateRecolteDto } from './dto/recoltes.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Recolte } from "./entities/recolte.entity";
+import { CreateRecolteDto, UpdateRecolteDto } from "./dto/recoltes.dto";
 
 @Injectable()
 export class RecoltesService {
@@ -19,17 +19,21 @@ export class RecoltesService {
     parcelleId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ data: Recolte[]; meta: { total: number; page: number; limit: number } }> {
+  }): Promise<{
+    data: Recolte[];
+    meta: { total: number; page: number; limit: number };
+  }> {
     const page = query?.page || 1;
     const limit = query?.limit || 20;
 
     const qb = this.recolteRepo
-      .createQueryBuilder('r')
-      .orderBy('r.dateRecolte', 'DESC')
+      .createQueryBuilder("r")
+      .orderBy("r.dateRecolte", "DESC")
       .skip((page - 1) * limit)
       .take(limit);
 
-    if (query?.parcelleId) qb.andWhere('r.parcelleId = :pid', { pid: query.parcelleId });
+    if (query?.parcelleId)
+      qb.andWhere("r.parcelleId = :pid", { pid: query.parcelleId });
 
     const [data, total] = await qb.getManyAndCount();
     return { data, meta: { total, page, limit } };
@@ -55,13 +59,13 @@ export class RecoltesService {
   async findByParcelle(parcelleId: string): Promise<Recolte[]> {
     return this.recolteRepo.find({
       where: { parcelleId },
-      order: { dateRecolte: 'DESC' },
+      order: { dateRecolte: "DESC" },
     });
   }
 
   async valider(id: string): Promise<Recolte> {
     const recolte = await this.findById(id);
-    recolte.statut = 'validee';
+    recolte.statut = "validee";
     return this.recolteRepo.save(recolte);
   }
 }
