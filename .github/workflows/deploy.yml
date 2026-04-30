@@ -11,6 +11,11 @@ jobs:
     name: Deploy to EC2
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Secrets are stored in GitHub Environment: staging
+    # Configure at: Repository Settings → Environments → staging
+    environment:
+      name: staging
+      url: https://api.agroassist.sn
 
     steps:
       - name: Checkout
