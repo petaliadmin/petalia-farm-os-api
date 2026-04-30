@@ -3,66 +3,56 @@ name: Deploy to EC2
 on:
   workflow_run:
     workflows: ["CI"]
-    types: [completed]
-    branches: [main]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
   deploy:
-    name: Deploy to EC2
     runs-on: ubuntu-latest
+    environment: staging
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    # Secrets are stored in GitHub Environment: staging
-    # Configure at: Repository Settings → Environments → staging
-    environment:
-      name: staging
-      url: https://api.agroassist.sn
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy deployment files to EC2
+      - name: Copy docker-compose.deploy.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.deploy.yml,nginx/nginx.conf"
+          source: "docker-compose.deploy.yml,.env.production"
           target: "/home/${{ secrets.EC2_USER }}/petalia-farm-os"
 
-      - name: Deploy on EC2
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+          envs: IMAGE_TAG,DOCKERHUB_USERNAME
           script: |
-            set -e
-
-            export IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
-
             cd /home/${{ secrets.EC2_USER }}/petalia-farm-os
 
-            # DockerHub login using passed environment variables
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            # DockerHub login
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            # Set image tag (use commit SHA or fallback to latest)
+            export IMAGE_TAG=${IMAGE_TAG:-latest}
+            export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
 
             # Pull new image
-            docker pull $DOCKERHUB_USERNAME/petalia-farm-os-api:$IMAGE_TAG
-
-            # Tag as latest locally
-            docker tag $DOCKERHUB_USERNAME/petalia-farm-os-api:$IMAGE_TAG \
-                       $DOCKERHUB_USERNAME/petalia-farm-os-api:current
+            docker compose -f docker-compose.deploy.yml pull
 
             # Restart containers with new image
-            IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME \
-              docker compose -f docker-compose.deploy.yml down
-
-            IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME \
-              docker compose -f docker-compose.deploy.yml up -d
+            docker compose -f docker-compose.deploy.yml down
+            docker compose -f docker-compose.deploy.yml up -d
 
             # Clean up old images
             docker image prune -f
