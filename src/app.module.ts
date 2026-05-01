@@ -35,6 +35,7 @@ import { ExportsModule } from "./exports/exports.module";
 import { MapModule } from "./map/map.module";
 import { MobileModule } from "./mobile/mobile.module";
 import { SatelliteModule } from "./satellite/satellite.module";
+import { DiagnosticModule } from "./diagnostic/diagnostic.module";
 
 @Module({
   imports: [
@@ -120,6 +121,7 @@ import { SatelliteModule } from "./satellite/satellite.module";
     MapModule,
     MobileModule,
     SatelliteModule,
+    DiagnosticModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

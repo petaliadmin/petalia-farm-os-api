@@ -26,6 +26,7 @@
     "seed:benchmarks": "ts-node -r tsconfig-paths/register scripts/seed-benchmarks.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bull": "^11.0.4",
     "@nestjs/cache-manager": "^2.2.2",
