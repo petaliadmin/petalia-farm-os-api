@@ -204,7 +204,7 @@ export class MapService {
             .where("n.date >= NOW() - INTERVAL '30 days'")
             .groupBy('n."parcelleId"'),
         "n",
-        'n.pid = p.id',
+        "n.pid = p.id",
       )
       .select("p.id", "id")
       .addSelect("p.code", "code")
@@ -231,8 +231,7 @@ export class MapService {
             code: r.code,
             ndvi: Number(ndvi.toFixed(3)),
             color: this.ndviColor(ndvi),
-            classe:
-              ndvi < 0.3 ? "stress" : ndvi < 0.6 ? "attention" : "sain",
+            classe: ndvi < 0.3 ? "stress" : ndvi < 0.6 ? "attention" : "sain",
           },
         };
       }),
@@ -245,9 +244,7 @@ export class MapService {
     if (!bbox) return null;
     const parts = bbox.split(",").map(Number);
     if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) {
-      throw new BadRequestException(
-        "bbox format: minLng,minLat,maxLng,maxLat",
-      );
+      throw new BadRequestException("bbox format: minLng,minLat,maxLng,maxLat");
     }
     const [minLng, minLat, maxLng, maxLat] = parts;
     return { minLng, minLat, maxLng, maxLat };

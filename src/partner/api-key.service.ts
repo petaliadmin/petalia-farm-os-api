@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { ApiKey, ApiKeyScope, ALL_SCOPES } from "./entities/api-key.entity";
 
@@ -27,9 +27,7 @@ export interface CreateApiKeyInput {
 export class ApiKeyService {
   private readonly logger = new Logger(ApiKeyService.name);
 
-  constructor(
-    @InjectRepository(ApiKey) private repo: Repository<ApiKey>,
-  ) {}
+  constructor(@InjectRepository(ApiKey) private repo: Repository<ApiKey>) {}
 
   async create(
     input: CreateApiKeyInput,
@@ -103,7 +101,9 @@ export class ApiKeyService {
       const ok = await bcrypt.compare(rawKey, c.keyHash);
       if (ok) {
         // fire-and-forget update
-        void this.repo.update(c.id, { lastUsedAt: new Date() }).catch(() => undefined);
+        void this.repo
+          .update(c.id, { lastUsedAt: new Date() })
+          .catch(() => undefined);
         return { apiKey: c, scopes: c.scopes ?? [] };
       }
     }

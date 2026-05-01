@@ -76,9 +76,10 @@ export class ExportsService {
         .filter((p) => p.boundary)
         .map((p) => ({
           type: "Feature",
-          geometry: p.boundary as
-            | { type: "Polygon"; coordinates: number[][][] }
-            | null,
+          geometry: p.boundary as {
+            type: "Polygon";
+            coordinates: number[][][];
+          } | null,
           properties: {
             id: p.id,
             code: p.code,

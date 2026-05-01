@@ -30,8 +30,9 @@ export class RapportsController {
   @Roles("admin", "directeur", "superviseur")
   exportRapport(
     @Body() data: { format: string; type: string; periode: string },
+    @TenantId() tenantId: string | null,
   ) {
-    return this.rapportsService.exportRapport(data);
+    return this.rapportsService.exportRapport(data, tenantId);
   }
 
   @Get("economiques")

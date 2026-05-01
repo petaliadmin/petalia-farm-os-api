@@ -43,9 +43,7 @@ export class DiagnosticService {
     }
     const mime = file.mimetype.toLowerCase();
     if (!ALLOWED_MIME.has(mime)) {
-      throw new BadRequestException(
-        "Format accepté: JPEG, PNG, WebP",
-      );
+      throw new BadRequestException("Format accepté: JPEG, PNG, WebP");
     }
 
     const parcelle = await this.parcelleRepo.findOne({
@@ -114,10 +112,7 @@ export class DiagnosticService {
     return qb.orderBy("d.createdAt", "DESC").take(50).getMany();
   }
 
-  async getOne(
-    id: string,
-    organisationId: string | null,
-  ): Promise<Diagnostic> {
+  async getOne(id: string, organisationId: string | null): Promise<Diagnostic> {
     const d = await this.diagnosticRepo.findOne({ where: { id } });
     if (!d) throw new NotFoundException("Diagnostic introuvable");
     if (

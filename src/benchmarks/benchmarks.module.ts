@@ -7,9 +7,7 @@ import { Parcelle } from "../parcelles/entities/parcelle.entity";
 import { Recolte } from "../recoltes/entities/recolte.entity";
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([BenchmarkRendement, Parcelle, Recolte]),
-  ],
+  imports: [TypeOrmModule.forFeature([BenchmarkRendement, Parcelle, Recolte])],
   controllers: [BenchmarksController],
   providers: [BenchmarksService],
   exports: [BenchmarksService],

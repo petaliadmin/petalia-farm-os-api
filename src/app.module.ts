@@ -6,8 +6,10 @@ import { CacheModule } from "@nestjs/cache-manager";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { BullModule } from "@nestjs/bull";
+import { LoggerModule } from "nestjs-pino";
 import { redisStore } from "cache-manager-redis-yet";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
+import { pinoConfig } from "./common/config/logger.config";
 
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -77,9 +79,7 @@ import { BillingModule } from "./billing/billing.module";
       }),
     }),
 
-    ThrottlerModule.forRoot([
-      { name: "global", ttl: 60_000, limit: 120 },
-    ]),
+    ThrottlerModule.forRoot([{ name: "global", ttl: 60_000, limit: 120 }]),
 
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -99,6 +99,8 @@ import { BillingModule } from "./billing/billing.module";
     }),
 
     ScheduleModule.forRoot(),
+    LoggerModule.forRootAsync(pinoConfig),
+
     AuthModule,
     UsersModule,
     ParcellesModule,

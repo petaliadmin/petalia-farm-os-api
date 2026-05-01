@@ -83,10 +83,7 @@ export class ApiKeyController {
   @Delete(":id")
   @Roles("admin", "directeur")
   @ApiOperation({ summary: "Révoque immédiatement une clé API" })
-  async revoke(
-    @Param("id") id: string,
-    @TenantId() tenantId: string | null,
-  ) {
+  async revoke(@Param("id") id: string, @TenantId() tenantId: string | null) {
     if (!tenantId) throw new Error("Organisation requise");
     await this.service.revoke(id, tenantId);
     return { ok: true };

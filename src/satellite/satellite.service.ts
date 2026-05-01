@@ -86,9 +86,10 @@ export class SatelliteService {
     ) {
       throw new NotFoundException("Parcelle introuvable");
     }
-    const boundary = parcelle.boundary as
-      | { type: "Polygon"; coordinates: number[][][] }
-      | null;
+    const boundary = parcelle.boundary as {
+      type: "Polygon";
+      coordinates: number[][][];
+    } | null;
     if (!boundary || boundary.type !== "Polygon") {
       throw new BadRequestException("Parcelle sans polygon valide");
     }
@@ -134,10 +135,7 @@ export class SatelliteService {
     indices: SatelliteIndexCode[],
     organisationId: string | null,
   ): Promise<
-    Record<
-      SatelliteIndexCode,
-      { date: string; mean: number; classe: string }[]
-    >
+    Record<SatelliteIndexCode, { date: string; mean: number; classe: string }[]>
   > {
     const parcelle = await this.parcellesRepo.findOne({
       where: { id: parcelleId, deleted: false },
@@ -160,7 +158,10 @@ export class SatelliteService {
     });
 
     const out = Object.fromEntries(
-      codes.map((c) => [c, [] as { date: string; mean: number; classe: string }[]]),
+      codes.map((c) => [
+        c,
+        [] as { date: string; mean: number; classe: string }[],
+      ]),
     ) as Record<
       SatelliteIndexCode,
       { date: string; mean: number; classe: string }[]

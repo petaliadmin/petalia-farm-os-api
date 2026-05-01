@@ -7,10 +7,8 @@ import {
 import { ConfigService } from "@nestjs/config";
 import axios, { AxiosInstance } from "axios";
 
-const TOKEN_URL =
-  "https://services.sentinel-hub.com/oauth/token";
-const STATS_URL =
-  "https://services.sentinel-hub.com/api/v1/statistics";
+const TOKEN_URL = "https://services.sentinel-hub.com/oauth/token";
+const STATS_URL = "https://services.sentinel-hub.com/api/v1/statistics";
 
 interface TokenResponse {
   access_token: string;
@@ -23,6 +21,32 @@ export interface NdviStats {
   ndviMin: number;
   ndviMax: number;
   cloudCoverage: number;
+}
+
+interface SentinelHubStatsResponse {
+  data: SentinelHubInterval[];
+}
+
+interface SentinelHubInterval {
+  interval: {
+    from: string;
+    to: string;
+  };
+  outputs: {
+    ndvi: {
+      bands: {
+        B0: {
+          stats: {
+            mean: number;
+            min: number;
+            max: number;
+            sampleCount: number;
+            noDataCount: number;
+          };
+        };
+      };
+    };
+  };
 }
 
 const NDVI_EVALSCRIPT = `//VERSION=3
@@ -132,9 +156,7 @@ export class SentinelHubClient {
       return data.access_token;
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        this.logger.error(
-          `Sentinel Hub OAuth failed: ${err.response?.status}`,
-        );
+        this.logger.error(`Sentinel Hub OAuth failed: ${err.response?.status}`);
       }
       throw new ServiceUnavailableException(
         "Authentification satellite échouée",
@@ -142,7 +164,7 @@ export class SentinelHubClient {
     }
   }
 
-  private parseStats(payload: any): NdviStats[] {
+  private parseStats(payload: SentinelHubStatsResponse): NdviStats[] {
     const intervals = payload?.data ?? [];
     const out: NdviStats[] = [];
     for (const interval of intervals) {

@@ -20,7 +20,9 @@ export class OrganisationsService {
 
   async create(dto: CreateOrganisationDto): Promise<Organisation> {
     if (dto.email) {
-      const exists = await this.orgRepo.findOne({ where: { email: dto.email } });
+      const exists = await this.orgRepo.findOne({
+        where: { email: dto.email },
+      });
       if (exists) {
         throw new ConflictException(
           "Une organisation avec cet email existe déjà",

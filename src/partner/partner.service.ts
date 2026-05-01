@@ -110,9 +110,10 @@ export class PartnerService {
     };
   }
 
-  async marketLatest(
-    culture: string,
-  ): Promise<{ culture: string; marches: { marche: string; date: string; prix: number }[] }> {
+  async marketLatest(culture: string): Promise<{
+    culture: string;
+    marches: { marche: string; date: string; prix: number }[];
+  }> {
     const rows = await this.priceRepo
       .createQueryBuilder("p")
       .distinctOn(["p.marche"])

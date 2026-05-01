@@ -8,10 +8,11 @@ import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { randomInt, randomBytes } from "crypto";
 import { UsersService } from "../users/users.service";
 import { User } from "../users/entities/user.entity";
+import { UpdateUserDto } from "../users/dto/users.dto";
 import {
   LoginDto,
   LoginResponseDto,
@@ -120,7 +121,7 @@ export class AuthService {
     );
     await this.usersService.update(userId, {
       passwordHash: newPasswordHash,
-    } as any);
+    } as UpdateUserDto);
 
     return { success: true };
   }
@@ -133,7 +134,7 @@ export class AuthService {
     userId: string,
     updateData: Partial<User>,
   ): Promise<User> {
-    return this.usersService.update(userId, updateData as any);
+    return this.usersService.update(userId, updateData as UpdateUserDto);
   }
 
   async forgotPassword(
@@ -169,7 +170,9 @@ export class AuthService {
     }
 
     const hash = await bcrypt.hash(newPassword, 12);
-    await this.usersService.update(userId, { passwordHash: hash } as any);
+    await this.usersService.update(userId, {
+      passwordHash: hash,
+    } as UpdateUserDto);
     await this.cacheManager.del(`pwd_reset:${token}`);
 
     return { success: true };
@@ -199,12 +202,18 @@ export class AuthService {
   async verifyOtp(phone: string, code: string): Promise<LoginResponseDto> {
     const user = await this.usersService.findByPhone(phone);
     if (!user) {
-      return { success: false, error: "Numéro non enregistré" } as LoginResponseDto;
+      return {
+        success: false,
+        error: "Numéro non enregistré",
+      } as LoginResponseDto;
     }
 
     const storedHash = await this.cacheManager.get<string>(`otp:${phone}`);
     if (!storedHash) {
-      return { success: false, error: "Code expiré ou non envoyé" } as LoginResponseDto;
+      return {
+        success: false,
+        error: "Code expiré ou non envoyé",
+      } as LoginResponseDto;
     }
 
     const isValid = await bcrypt.compare(code, storedHash);
@@ -239,8 +248,7 @@ export class AuthService {
       role: user.role,
       organisationId: user.organisationId,
     };
-    const expiresIn =
-      this.configService.get<string>("JWT_EXPIRES_IN") || "8h";
+    const expiresIn = this.configService.get<string>("JWT_EXPIRES_IN") || "8h";
     return this.jwtService.sign(payload, { expiresIn });
   }
 }

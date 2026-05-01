@@ -53,9 +53,9 @@ export class IrrigationService {
       throw new NotFoundException("Parcelle introuvable");
     }
 
-    const centroid = parcelle.centroid as
-      | { coordinates?: [number, number] }
-      | null;
+    const centroid = parcelle.centroid as {
+      coordinates?: [number, number];
+    } | null;
     if (!centroid?.coordinates) {
       throw new BadRequestException(
         "Parcelle sans centroid — impossible de récupérer la météo",
@@ -78,10 +78,10 @@ export class IrrigationService {
     const forecast = (forecastResp?.data as ForecastDay[] | undefined) ?? [];
 
     const tempAvg = forecast.length
-      ? forecast.slice(0, 3).reduce(
-          (s, d) => s + (d.tempMax + d.tempMin) / 2,
-          0,
-        ) / Math.min(3, forecast.length)
+      ? forecast
+          .slice(0, 3)
+          .reduce((s, d) => s + (d.tempMax + d.tempMin) / 2, 0) /
+        Math.min(3, forecast.length)
       : current.temperature;
 
     const et0 = this.estimateET0(tempAvg, current.humidite, current.vent);

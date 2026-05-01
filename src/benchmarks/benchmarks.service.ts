@@ -100,9 +100,7 @@ export class BenchmarksService {
         parcelle.zoneAgroecologique
           ? "b.zoneAgroecologique = :z"
           : "b.zoneAgroecologique IS NULL",
-        parcelle.zoneAgroecologique
-          ? { z: parcelle.zoneAgroecologique }
-          : {},
+        parcelle.zoneAgroecologique ? { z: parcelle.zoneAgroecologique } : {},
       )
       .andWhere(
         parcelle.typeCampagne
@@ -164,7 +162,7 @@ export class BenchmarksService {
           zoneAgroecologique: row.zoneAgroecologique ?? null,
           variete: row.variete ?? null,
           typeCampagne: row.typeCampagne ?? null,
-        } as any,
+        },
       });
       if (existing) {
         skipped++;
@@ -173,9 +171,7 @@ export class BenchmarksService {
       await this.benchRepo.save(this.benchRepo.create(row));
       inserted++;
     }
-    this.logger.log(
-      `Benchmark seed: ${inserted} inserted, ${skipped} skipped`,
-    );
+    this.logger.log(`Benchmark seed: ${inserted} inserted, ${skipped} skipped`);
     return { inserted, skipped };
   }
 }

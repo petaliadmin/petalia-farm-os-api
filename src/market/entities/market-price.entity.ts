@@ -16,7 +16,16 @@ export class MarketPrice {
 
   @Column({
     type: "enum",
-    enum: ["riz", "mais", "mil", "arachide", "oignon", "tomate", "mangue", "niebe"],
+    enum: [
+      "riz",
+      "mais",
+      "mil",
+      "arachide",
+      "oignon",
+      "tomate",
+      "mangue",
+      "niebe",
+    ],
   })
   culture: string;
 

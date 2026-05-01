@@ -1,8 +1,12 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { InjectQueue } from "@nestjs/bull";
+import { Queue } from "bull";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
+import { QUEUE_NAMES } from "../common/queues";
+import { PdfGenerationJob } from "./rapports.processor";
 import { Visite } from "../visites/entities/visite.entity";
 import { Tache } from "../taches/entities/tache.entity";
 import { Recolte } from "../recoltes/entities/recolte.entity";
@@ -26,6 +30,8 @@ type Periode = "semaine" | "mois" | "saison";
 
 @Injectable()
 export class RapportsService {
+  private readonly logger = new Logger(RapportsService.name);
+
   constructor(
     @InjectRepository(Visite) private visitesRepo: Repository<Visite>,
     @InjectRepository(Tache) private tachesRepo: Repository<Tache>,
@@ -34,21 +40,17 @@ export class RapportsService {
     @InjectRepository(Mouvement) private mouvementsRepo: Repository<Mouvement>,
     @InjectRepository(Intrant) private intrantsRepo: Repository<Intrant>,
     @Inject(CACHE_MANAGER) private cache: Cache,
+    @InjectQueue(QUEUE_NAMES.PDF) private pdfQueue: Queue<PdfGenerationJob>,
   ) {}
 
-  async getKpis(
-    periode: Periode = "mois",
-    organisationId: string | null,
-  ) {
+  async getKpis(periode: Periode = "mois", organisationId: string | null) {
     const key = `rapports:kpis:${organisationId ?? "all"}:${periode}`;
     const cached = await this.cache.get(key);
     if (cached) return { data: cached, cached: true };
 
     const interval = this.intervalFor(periode);
 
-    const orgFilter = organisationId
-      ? { organisationId }
-      : {};
+    const orgFilter = organisationId ? { organisationId } : {};
 
     const [
       visitesRealisees,
@@ -242,18 +244,55 @@ export class RapportsService {
     return { data, cached: false };
   }
 
-  async exportRapport(_data: {
-    format: string;
-    type: string;
-    periode: string;
-  }) {
-    // Sprint 5.1: PDF generation will move to a Bull worker (PDFKit)
+  async exportRapport(
+    data: {
+      format: string;
+      type: string;
+      periode: string;
+    },
+    organisationId: string | null,
+  ) {
+    // Only support PDF for now
+    if (data.format !== "pdf") {
+      return {
+        data: {
+          url: null,
+          nom: `Rapport_${data.type}.${data.format}`,
+          status: "not_supported",
+          message: `Format ${data.format} non supporté (PDF uniquement)`,
+        },
+      };
+    }
+
+    const rapportType =
+      (data.type as "synthese" | "visites" | "recoltes" | "complet") ||
+      "synthese";
+    const periode = (data.periode as "semaine" | "mois" | "saison") || "mois";
+
+    const job = await this.pdfQueue.add(
+      "generate",
+      {
+        organisationId,
+        type: rapportType,
+        periode,
+      },
+      {
+        jobId: `pdf-${rapportType}-${organisationId ?? "all"}-${Date.now()}`,
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+      },
+    );
+
+    this.logger.log(
+      `Enqueued PDF generation job ${job.id} for rapport ${rapportType}`,
+    );
+
     return {
       data: {
-        url: null,
-        nom: `Rapport_${_data.type}_${new Date().toISOString().slice(0, 10)}.${_data.format}`,
-        status: "not_implemented",
-        message: "Export PDF différé au Sprint 5.1 (worker Bull)",
+        jobId: String(job.id),
+        nom: `Rapport_${rapportType}_${new Date().toISOString().slice(0, 10)}.${data.format}`,
+        status: "queued",
+        message: "Génération PDF en cours — vérifiez le statut avec le jobId",
       },
     };
   }

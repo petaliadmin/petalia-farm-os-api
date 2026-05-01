@@ -37,9 +37,10 @@ export class NdviProcessor {
       throw new NotFoundException(`Parcelle ${parcelleId} introuvable`);
     }
 
-    const boundary = parcelle.boundary as
-      | { type: "Polygon"; coordinates: number[][][] }
-      | null;
+    const boundary = parcelle.boundary as {
+      type: "Polygon";
+      coordinates: number[][][];
+    } | null;
     if (!boundary || boundary.type !== "Polygon") {
       throw new Error(`Parcelle ${parcelleId} sans boundary Polygon valide`);
     }

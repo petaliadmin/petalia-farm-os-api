@@ -1,5 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { PaymentProvider, PaymentInitResult } from "./payment-provider.interface";
+import {
+  PaymentProvider,
+  PaymentInitResult,
+} from "./payment-provider.interface";
 import { PaymentIntent } from "../entities/payment-intent.entity";
 
 /**

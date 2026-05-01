@@ -13,6 +13,7 @@ import { WhatsAppMessage } from "./entities/whatsapp-message.entity";
 import { WhatsAppOptin } from "./entities/whatsapp-optin.entity";
 import { User } from "../users/entities/user.entity";
 import { WhatsAppSendJob } from "./whatsapp.processor";
+import { WhatsAppWebhookPayload } from "./whatsapp.controller";
 
 const PHONE_E164 = /^\+[1-9]\d{6,14}$/;
 
@@ -48,7 +49,7 @@ export class WhatsAppService {
   ): Promise<WhatsAppOptin> {
     if (!PHONE_E164.test(phoneE164)) {
       throw new BadRequestException(
-        "Numéro doit être au format E.164 (+221XXXXXXXXX)",
+        "Num�ro doit �tre au format E.164 (+221XXXXXXXXX)",
       );
     }
     const existing = await this.optinRepo.findOne({ where: { userId } });
@@ -86,7 +87,7 @@ export class WhatsAppService {
   /**
    * Public entry point used by AlertesService. Resolves the user's opt-in,
    * persists a queued message, and enqueues the Bull job.
-   * Returns null if the user is not opted-in for the given topic — the
+   * Returns null if the user is not opted-in for the given topic � the
    * caller should not treat this as an error.
    */
   async sendNotification(
@@ -136,7 +137,9 @@ export class WhatsAppService {
    * Inbound webhook payload (Meta Cloud API).
    * Persists incoming messages and updates outbound delivery statuses.
    */
-  async ingestWebhook(payload: any): Promise<{ processed: number }> {
+  async ingestWebhook(
+    payload: WhatsAppWebhookPayload,
+  ): Promise<{ processed: number }> {
     const entries = Array.isArray(payload?.entry) ? payload.entry : [];
     let processed = 0;
 

@@ -21,7 +21,7 @@ export class EquipesService {
     meta: { total: number; page: number; limit: number };
   }> {
     const page = query?.page || 1;
-    const limit = query?.limit || 20;
+    const limit = Math.min(query?.limit || 20, 100);
     const where = query?.organisationId
       ? { organisationId: query.organisationId }
       : {};

@@ -1,11 +1,10 @@
+import { Controller, Get, Query, Res, UseGuards } from "@nestjs/common";
 import {
-  Controller,
-  Get,
-  Query,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from "@nestjs/swagger";
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from "@nestjs/swagger";
 import type { Response } from "express";
 import { ExportsService } from "./exports.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -29,10 +28,7 @@ export class ExportsController {
     const result = await this.exportsService.exportParcelles(format, tenantId);
     const filename = `parcelles_${new Date().toISOString().slice(0, 10)}.${result.extension}`;
     res.setHeader("Content-Type", result.contentType);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(result.body);
   }
 }

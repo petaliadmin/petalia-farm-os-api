@@ -7,11 +7,22 @@ import {
   Headers,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiHeader,
+  ApiOperation,
+} from "@nestjs/swagger";
 import { InteropService } from "./interop.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
+import {
+  DeclareSinistreDto,
+  DeclarationCampagneDto,
+  CreditNotificationDto,
+  IndemnisationWebhookDto,
+} from "./dto/interop.dto";
 
 @ApiTags("Interop")
 @Controller("interop")
@@ -22,7 +33,9 @@ export class InteropController {
 
   @Get("banque/score-credit/:nationalId")
   @Roles("admin", "directeur", "partenaire")
-  @ApiOperation({ summary: "Score crédit agriculteur pour banques partenaires" })
+  @ApiOperation({
+    summary: "Score cr�dit agriculteur pour banques partenaires",
+  })
   getScoreCredit(@Param("nationalId") nationalId: string) {
     return this.interopService.getScoreCredit(nationalId);
   }
@@ -41,7 +54,7 @@ export class InteropController {
 
   @Post("banque/credit/notification")
   @Roles("admin", "directeur", "partenaire")
-  creditNotification(@Body() data: any) {
+  creditNotification(@Body() data: CreditNotificationDto) {
     return this.interopService.creditNotification(data);
   }
 
@@ -53,28 +66,28 @@ export class InteropController {
 
   @Post("assurance/sinistre")
   @Roles("admin", "directeur", "partenaire")
-  declareSinistre(@Body() data: any) {
+  declareSinistre(@Body() data: DeclareSinistreDto) {
     return this.interopService.declareSinistre(data);
   }
 
   /**
-   * Webhook appelé par le partenaire assurance après validation d'indemnisation.
-   * Authentifié par HMAC-SHA256 dans le header X-Insurance-Signature.
-   * Ce endpoint est volontairement hors JWT (appelé par un système tiers).
+   * Webhook appel� par le partenaire assurance apr�s validation d'indemnisation.
+   * Authentifi� par HMAC-SHA256 dans le header X-Insurance-Signature.
+   * Ce endpoint est volontairement hors JWT (appel� par un syst�me tiers).
    */
   @Post("assurance/indemnisation/webhook")
-  @UseGuards() // Override class-level guards — no JWT for inbound webhooks
+  @UseGuards() // Override class-level guards � no JWT for inbound webhooks
   @ApiHeader({
     name: "X-Insurance-Signature",
     description: "sha256=<HMAC-SHA256 du body avec INSURANCE_WEBHOOK_SECRET>",
     required: true,
   })
   @ApiOperation({
-    summary: "Webhook indemnisation assurance (authentifié par HMAC)",
+    summary: "Webhook indemnisation assurance (authentifi� par HMAC)",
   })
   indemnisationWebhook(
     @Headers("x-insurance-signature") sig: string,
-    @Body() data: any,
+    @Body() data: IndemnisationWebhookDto,
   ) {
     this.interopService.validateInsuranceSignature(sig, JSON.stringify(data));
     return this.interopService.indemnisationWebhook(data);
@@ -94,7 +107,7 @@ export class InteropController {
 
   @Post("etat/declaration-campagne")
   @Roles("admin", "directeur", "partenaire")
-  declarationCampagne(@Body() data: any) {
+  declarationCampagne(@Body() data: DeclarationCampagneDto) {
     return this.interopService.declarationCampagne(data);
   }
 }

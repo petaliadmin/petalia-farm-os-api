@@ -7,6 +7,7 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
+import { AuthenticatedUser } from "../../common/interfaces/authenticated-user.interface";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Throttle, SkipThrottle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
@@ -37,8 +38,8 @@ export class AuthController {
   @Post("logout")
   @SkipThrottle()
   @ApiOperation({ summary: "Déconnexion" })
-  async logout(@Request() req: any) {
-    await this.authService.logout(req.user?.sub);
+  async logout(@Request() req: Request & { user: AuthenticatedUser }) {
+    await this.authService.logout(req.user.sub);
     return {};
   }
 
@@ -54,7 +55,7 @@ export class AuthController {
   @SkipThrottle()
   @ApiBearerAuth()
   @ApiOperation({ summary: "Profil utilisateur connecté" })
-  async getProfile(@Request() req: any) {
+  async getProfile(@Request() req: Request & { user: AuthenticatedUser }) {
     const user = await this.authService.getProfile(req.user.sub);
     return { data: user };
   }
@@ -65,7 +66,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Mettre à jour le profil utilisateur" })
   async updateProfile(
-    @Request() req: any,
+    @Request() req: Request & { user: AuthenticatedUser },
     @Body() updateDto: UpdateProfileDto,
   ) {
     const user = await this.authService.updateProfile(req.user.sub, updateDto);
@@ -78,7 +79,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Changer le mot de passe" })
   async changePassword(
-    @Request() req: any,
+    @Request() req: Request & { user: AuthenticatedUser },
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(req.user.sub, changePasswordDto);

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { BenchmarksService } from "./benchmarks.service";
+import { BenchmarkRendement } from "./entities/benchmark-rendement.entity";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -54,14 +55,14 @@ export class BenchmarksController {
   @Post()
   @Roles("admin")
   @SkipTenantScope()
-  create(@Body() data: any) {
+  create(@Body() data: Partial<BenchmarkRendement>) {
     return this.benchmarksService.create(data);
   }
 
   @Patch(":id")
   @Roles("admin")
   @SkipTenantScope()
-  update(@Param("id") id: string, @Body() data: any) {
+  update(@Param("id") id: string, @Body() data: Partial<BenchmarkRendement>) {
     return this.benchmarksService.update(id, data);
   }
 

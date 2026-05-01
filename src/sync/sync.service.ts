@@ -1,9 +1,64 @@
-import { Injectable } from "@nestjs/common";
+﻿import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DeepPartial, Repository } from "typeorm";
 import { AgroRule } from "./entities/agro-rule.entity";
 import { ExpertRequest } from "./entities/expert-request.entity";
 import { Parcelle } from "../parcelles/entities/parcelle.entity";
+
+interface SyncActionExpertRequest {
+  type: "expert_request.submit";
+  data: {
+    parcelId: string;
+    photoPaths?: string[];
+    context: string;
+  };
+}
+
+export type SyncAction = SyncActionExpertRequest;
+
+interface SyncError {
+  action: string;
+  error: string;
+}
+
+interface SyncConflict {
+  entityType: string;
+  entityId: string;
+  serverVersion: unknown;
+  clientVersion: unknown;
+}
+
+interface FlutterParcel {
+  id: string;
+  name: string;
+  owner: string;
+  village: string;
+  crop: string;
+  growthStage: string;
+  irrigation: string;
+  healthScore: number;
+  lastVisit: string;
+  estimatedYield: number;
+  boundary: Array<[number, number]>;
+  variety?: string;
+  semisDate?: string;
+  region?: string;
+  soilType?: string;
+  previousCrop?: string;
+}
+
+interface SyncPushResult {
+  processed: number;
+  errors: SyncError[];
+  conflicts: SyncConflict[];
+  serverTimestamp: string;
+}
+
+interface SyncPullResult {
+  parcels: FlutterParcel[];
+  agro_rules: AgroRule[];
+  serverTimestamp: string;
+}
 
 @Injectable()
 export class SyncService {
@@ -27,9 +82,11 @@ export class SyncService {
     return { schemaVersion: 1, updatedAt: new Date().toISOString(), rules };
   }
 
-  async createExpertRequest(
-    data: any,
-  ): Promise<{ id: string; status: string; receivedAt: string }> {
+  async createExpertRequest(data: {
+    parcelId: string;
+    photoPaths?: string[];
+    context: string;
+  }): Promise<{ id: string; status: string; receivedAt: string }> {
     const request = await this.expertRequestRepo.save(
       this.expertRequestRepo.create(data as DeepPartial<ExpertRequest>),
     );
@@ -40,13 +97,8 @@ export class SyncService {
     };
   }
 
-  async pushSync(actions: any[]): Promise<{
-    processed: number;
-    errors: any[];
-    conflicts: any[];
-    serverTimestamp: string;
-  }> {
-    const errors: any[] = [];
+  async pushSync(actions: SyncAction[]): Promise<SyncPushResult> {
+    const errors: SyncError[] = [];
     let processed = 0;
 
     for (const action of actions) {
@@ -55,8 +107,9 @@ export class SyncService {
           await this.createExpertRequest(action.data);
         }
         processed++;
-      } catch (e: any) {
-        errors.push({ action: action.type, error: e.message });
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        errors.push({ action: action.type, error: message });
       }
     }
 
@@ -68,12 +121,9 @@ export class SyncService {
     };
   }
 
-  async pullSync(
-    since: string,
-    resources: string,
-  ): Promise<{ parcels: any[]; agro_rules: any[]; serverTimestamp: string }> {
+  async pullSync(since: string, resources: string): Promise<SyncPullResult> {
     const resourceList = resources.split(",");
-    const result: any = {
+    const result: SyncPullResult = {
       parcels: [],
       agro_rules: [],
       serverTimestamp: new Date().toISOString(),
@@ -101,8 +151,10 @@ export class SyncService {
     return result;
   }
 
-  private toFlutterParcel(p: Parcelle): any {
-    const boundary = p.boundary as any;
+  private toFlutterParcel(p: Parcelle): FlutterParcel {
+    const boundary = p.boundary as {
+      coordinates?: Array<[number, number][]>;
+    } | null;
     return {
       id: p.id,
       name: p.nom,

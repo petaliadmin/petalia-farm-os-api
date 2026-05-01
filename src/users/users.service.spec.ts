@@ -102,7 +102,9 @@ describe("UsersService", () => {
         role: createDto.role,
       });
       expect(created).toHaveProperty("id");
-      expect(mockRepository.create).toHaveBeenCalledWith(createDto);
+      const callArgs = mockRepository.create.mock.calls[0][0];
+      expect(callArgs).toHaveProperty("email", createDto.email);
+      expect(callArgs).toHaveProperty("passwordHash");
       expect(mockRepository.save).toHaveBeenCalled();
     });
   });

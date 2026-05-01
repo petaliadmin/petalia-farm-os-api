@@ -31,7 +31,9 @@ export class DiagnosticController {
   constructor(private readonly service: DiagnosticService) {}
 
   @Post("photo")
-  @UseInterceptors(FileInterceptor("photo", { limits: { fileSize: 8 * 1024 * 1024 } }))
+  @UseInterceptors(
+    FileInterceptor("photo", { limits: { fileSize: 8 * 1024 * 1024 } }),
+  )
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
     summary:

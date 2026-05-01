@@ -110,7 +110,13 @@ export class AlertesService {
       .andWhere("n.date >= NOW() - INTERVAL '7 days'")
       .andWhere("p.deleted = false")
       .andWhere("p.technicienId IS NOT NULL")
-      .select(["n.parcelleId AS parcelleId", "n.ndviMoyen AS ndvi", "p.code AS code", "p.nom AS nom", "p.technicienId AS technicienId"])
+      .select([
+        "n.parcelleId AS parcelleId",
+        "n.ndviMoyen AS ndvi",
+        "p.code AS code",
+        "p.nom AS nom",
+        "p.technicienId AS technicienId",
+      ])
       .getRawMany();
 
     let alertsCreated = 0;
@@ -161,7 +167,13 @@ export class AlertesService {
       .andWhere("p.technicienId IS NOT NULL")
       .andWhere("p.prochaineVisite IS NOT NULL")
       .andWhere("p.prochaineVisite < NOW()")
-      .select(["p.id", "p.code", "p.nom", "p.technicienId", "p.prochaineVisite"])
+      .select([
+        "p.id",
+        "p.code",
+        "p.nom",
+        "p.technicienId",
+        "p.prochaineVisite",
+      ])
       .limit(500)
       .getMany();
 

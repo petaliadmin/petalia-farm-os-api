@@ -88,8 +88,7 @@ export class MobileService {
     organisationId: string | null,
   ): Promise<MobileDashboardPayload> {
     const cacheKey = `mobile:dashboard:${userId}:${organisationId ?? "none"}`;
-    const cached =
-      await this.cache.get<MobileDashboardPayload>(cacheKey);
+    const cached = await this.cache.get<MobileDashboardPayload>(cacheKey);
     if (cached) return cached;
 
     const now = new Date();
@@ -126,7 +125,9 @@ export class MobileService {
         "lateVisits",
       );
     if (organisationId)
-      allParcellesQb.andWhere("p.organisationId = :org", { org: organisationId });
+      allParcellesQb.andWhere("p.organisationId = :org", {
+        org: organisationId,
+      });
     if (role === "technicien")
       allParcellesQb.andWhere("p.technicienId = :uid", { uid: userId });
     const kpiRow = await allParcellesQb.getRawOne<{
@@ -170,9 +171,7 @@ export class MobileService {
       user: { id: userId, role, organisationId },
       kpi: {
         parcellesActives: Number(kpiRow?.total ?? 0),
-        superficieTotaleHa: Number(
-          Number(kpiRow?.superficie ?? 0).toFixed(1),
-        ),
+        superficieTotaleHa: Number(Number(kpiRow?.superficie ?? 0).toFixed(1)),
         visitesEnRetard: Number(kpiRow?.lateVisits ?? 0),
         tachesAujourdhui: taches.length,
         alertesOuvertes: alertes.length,
@@ -247,9 +246,9 @@ export class MobileService {
     };
   }
 
-  private async zoneWeather(parcelles: Parcelle[]): Promise<
-    DashboardWeatherZone[]
-  > {
+  private async zoneWeather(
+    parcelles: Parcelle[],
+  ): Promise<DashboardWeatherZone[]> {
     const zones = new Map<string, { lat: number; lng: number }>();
     for (const p of parcelles) {
       const c = this.centroidLngLat(p.centroid);

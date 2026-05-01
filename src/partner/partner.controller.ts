@@ -1,17 +1,6 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Req,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
-import {
-  ApiTags,
-  ApiHeader,
-  ApiOperation,
-  ApiQuery,
-} from "@nestjs/swagger";
+import { ApiTags, ApiHeader, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { ApiKeyGuard } from "./guards/api-key.guard";
 import { QuotaGuard } from "./guards/quota.guard";
 import { RequireScopes } from "./decorators/scopes.decorator";
@@ -42,10 +31,7 @@ export class PartnerController {
     description: "Filtre minLng,minLat,maxLng,maxLat",
   })
   parcelles(@Req() req: Request, @Query("bbox") bbox: string | undefined) {
-    return this.partner.parcellesAggregated(
-      req.partner!.organisationId,
-      bbox,
-    );
+    return this.partner.parcellesAggregated(req.partner!.organisationId, bbox);
   }
 
   @Get("ndvi/aggregate")

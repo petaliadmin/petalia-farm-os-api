@@ -14,8 +14,9 @@ import { EquipesService } from "./equipes.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { Equipe } from "./entities/equipe.entity";
 
-@ApiTags("Équipes")
+@ApiTags("�quipes")
 @Controller("equipes")
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -42,13 +43,13 @@ export class EquipesController {
 
   @Post()
   @Roles("admin", "directeur", "superviseur")
-  create(@Body() data: any) {
+  create(@Body() data: Partial<Equipe>) {
     return this.equipesService.create(data);
   }
 
   @Patch(":id")
   @Roles("admin", "directeur", "superviseur")
-  update(@Param("id") id: string, @Body() data: any) {
+  update(@Param("id") id: string, @Body() data: Partial<Equipe>) {
     return this.equipesService.update(id, data);
   }
 

@@ -5,7 +5,17 @@
       "Bash(npx tsc *)",
       "Bash(git add *)",
       "Bash(git reset *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(iconv -f UTF-16LE -t UTF-8 \"C:\\\\Developement\\\\petalia-farm-os-api\\\\src\\\\auth\\\\strategies\\\\jwt.strategy.ts\")",
+      "Bash(iconv -f UTF-16LE -t UTF-8 \"C:\\\\Developement\\\\petalia-farm-os-api\\\\src\\\\auth\\\\strategies\\\\local.strategy.ts\")",
+      "Bash(iconv -f UTF-16LE -t UTF-8 \"C:\\\\Developement\\\\petalia-farm-os-api\\\\src\\\\sync\\\\sync.service.ts\")",
+      "Bash(iconv -f UTF-8 -t UTF-8 \"C:\\\\Developement\\\\petalia-farm-os-api\\\\src\\\\notifications\\\\notifications.controller.ts\")",
+      "Bash(iconv -f UTF-16LE -t UTF-8 \"C:\\\\Developement\\\\petalia-farm-os-api\\\\src\\\\auth\\\\dto\\\\auth.dto.jwt.ts\")",
+      "Bash(iconv -f UTF-16LE -t UTF-8 \"C:\\\\Developement\\\\petalia-farm-os-api\\\\src\\\\auth\\\\dto\\\\auth.dto.ts\")",
+      "Bash(npm uninstall *)",
+      "Bash(find C:\\\\Developement\\\\petalia-farm-os-api\\\\src *)"
     ]
   }
 }

@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { WebhooksService } from "./webhooks.service";
+import { Webhook } from "./entities/webhook.entity";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -30,13 +31,13 @@ export class WebhooksController {
 
   @Post()
   @Roles("admin")
-  create(@Body() data: any) {
+  create(@Body() data: Partial<Webhook>) {
     return this.webhooksService.create(data);
   }
 
   @Patch(":id")
   @Roles("admin")
-  update(@Param("id") id: string, @Body() data: any) {
+  update(@Param("id") id: string, @Body() data: Partial<Webhook>) {
     return this.webhooksService.update(id, data);
   }
 

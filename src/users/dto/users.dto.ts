@@ -20,7 +20,9 @@ export class CreateUserDto {
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ description: "Min 10 chars, 1 majuscule, 1 chiffre, 1 symbole" })
+  @ApiProperty({
+    description: "Min 10 chars, 1 majuscule, 1 chiffre, 1 symbole",
+  })
   @IsString()
   @MinLength(10)
   @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\-_#]).{10,}$/, {

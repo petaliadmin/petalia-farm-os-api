@@ -1,0 +1,17 @@
+[Unit]
+Description=Petalia PostgreSQL Backup Timer
+Requires=petalia-backup.service
+
+[Timer]
+# Run at 2 AM daily (UTC)
+OnCalendar=daily
+OnCalendar=*-*-* 02:00:00
+
+# Run backup immediately on start if timer was inactive
+Persistent=true
+
+# Randomize start time within 5 minutes to avoid thundering herd
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

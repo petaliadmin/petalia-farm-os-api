@@ -49,7 +49,8 @@ export class MarketService {
       throw new BadRequestException("rows[] requis");
     }
     const valid = rows.filter(
-      (r) => r.culture && r.marche && r.date && typeof r.prixFcfaPerKg === "number",
+      (r) =>
+        r.culture && r.marche && r.date && typeof r.prixFcfaPerKg === "number",
     );
     if (valid.length === 0) {
       throw new BadRequestException(
@@ -114,12 +115,7 @@ export class MarketService {
       );
     }
 
-    const result = this.computeForecast(
-      culture,
-      marche,
-      history,
-      horizonDays,
-    );
+    const result = this.computeForecast(culture, marche, history, horizonDays);
     await this.cache.set(cacheKey, result, CACHE_TTL_MS);
     return result;
   }
@@ -143,9 +139,7 @@ export class MarketService {
     horizonDays: number,
   ): ForecastResult {
     const t0 = history[0].date.getTime();
-    const xs = history.map(
-      (p) => (p.date.getTime() - t0) / 86_400_000,
-    );
+    const xs = history.map((p) => (p.date.getTime() - t0) / 86_400_000);
     const ys = history.map((p) => Math.log(Math.max(p.prixFcfaPerKg, 1)));
     const n = xs.length;
     const meanX = xs.reduce((a, b) => a + b, 0) / n;
@@ -177,13 +171,9 @@ export class MarketService {
     }
 
     // RMSE retransformé en FCFA
-    const rmseLog = Math.sqrt(
-      residuals.reduce((a, b) => a + b * b, 0) / n,
-    );
+    const rmseLog = Math.sqrt(residuals.reduce((a, b) => a + b * b, 0) / n);
     const rmseFcfa = Number(
-      (
-        Math.exp(meanY) * (Math.exp(rmseLog) - 1)
-      ).toFixed(0),
+      (Math.exp(meanY) * (Math.exp(rmseLog) - 1)).toFixed(0),
     );
 
     // Forecast horizonDays jours à partir de today
@@ -200,8 +190,8 @@ export class MarketService {
       forecast.push({
         date: this.toIsoDate(future),
         prevPrixFcfaPerKg: Number(mean.toFixed(0)),
-        ic80Bas: Number((Math.exp(yhat - ic80)).toFixed(0)),
-        ic80Haut: Number((Math.exp(yhat + ic80)).toFixed(0)),
+        ic80Bas: Number(Math.exp(yhat - ic80).toFixed(0)),
+        ic80Haut: Number(Math.exp(yhat + ic80).toFixed(0)),
       });
     }
 

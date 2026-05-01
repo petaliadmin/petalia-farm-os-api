@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { Campagne } from "./entities/campagne.entity";
+import { Tache } from "../taches/entities/tache.entity";
 
 @Injectable()
 export class CampagnesService {
@@ -41,7 +42,7 @@ export class CampagnesService {
 
   async findById(id: string): Promise<Campagne> {
     const c = await this.campagneRepo.findOne({ where: { id } });
-    if (!c) throw new NotFoundException(`Campagne ${id} non trouvée`);
+    if (!c) throw new NotFoundException(`Campagne ${id} non trouv�e`);
     return c;
   }
 
@@ -92,13 +93,11 @@ export class CampagnesService {
       .getMany();
   }
 
-  async getTaches(campagneId: string): Promise<any[]> {
-    const { Tache } = await import("../taches/entities/tache.entity");
+  async getTaches(campagneId: string): Promise<Tache[]> {
     return this.dataSource.getRepository(Tache).find({ where: { campagneId } });
   }
 
-  async generateTaches(campagneId: string): Promise<any[]> {
-    const { Tache } = await import("../taches/entities/tache.entity");
+  async generateTaches(campagneId: string): Promise<Tache[]> {
     const repo = this.dataSource.getRepository(Tache);
     const tasks = [
       repo.create({

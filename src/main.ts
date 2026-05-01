@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, INestApplication } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { ExpressAdapter } from "@nestjs/platform-express";
+import { Logger as PinoLogger } from "nestjs-pino";
 import * as express from "express";
 import { AppModule } from "./app.module";
 
@@ -74,8 +75,9 @@ export async function createApp(
 async function bootstrap() {
   const app = await createApp();
   const port = process.env.PORT || 3000;
+  const logger = app.get(PinoLogger);
   await app.listen(port);
-  console.log(`🐝 Petalia API running on port ${port}`);
+  logger.log(`🐝 Petalia API running on port ${port}`);
 }
 
 if (require.main === module) {

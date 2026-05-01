@@ -1,5 +1,10 @@
 import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from "@nestjs/swagger";
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from "@nestjs/swagger";
 import { AnalyticsService } from "./analytics.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { TenantId } from "../common/decorators/tenant-id.decorator";
@@ -32,7 +37,9 @@ export class AnalyticsController {
   }
 
   @Get("marges/parcelles")
-  @ApiOperation({ summary: "Marge brute et ROI par parcelle (12 derniers mois)" })
+  @ApiOperation({
+    summary: "Marge brute et ROI par parcelle (12 derniers mois)",
+  })
   margesParcelles(
     @Query("limit") limit: string | undefined,
     @TenantId() tenantId: string | null,

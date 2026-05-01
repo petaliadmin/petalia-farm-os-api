@@ -65,7 +65,9 @@ export class BillingService implements OnModuleInit {
 
   // ── Subscriptions ────────────────────────────────────────────────────────
 
-  async getOrgSubscription(organisationId: string): Promise<Subscription | null> {
+  async getOrgSubscription(
+    organisationId: string,
+  ): Promise<Subscription | null> {
     return this.subRepo.findOne({ where: { organisationId } });
   }
 
@@ -82,7 +84,11 @@ export class BillingService implements OnModuleInit {
   ): Promise<{
     subscription: Subscription;
     paymentIntent: PaymentIntent | null;
-    paymentInit: { providerRef: string; instructions?: string; redirectUrl?: string } | null;
+    paymentInit: {
+      providerRef: string;
+      instructions?: string;
+      redirectUrl?: string;
+    } | null;
   }> {
     const plan = await this.getPlanByCode(planCode);
     const isFree = plan.prixMensuelFcfa === 0 && plan.prixAnnuelFcfa === 0;
@@ -166,7 +172,10 @@ export class BillingService implements OnModuleInit {
   /**
    * Confirme un paiement (admin ou webhook). Active la souscription liée.
    */
-  async confirmPayment(intentId: string, notes?: string): Promise<PaymentIntent> {
+  async confirmPayment(
+    intentId: string,
+    notes?: string,
+  ): Promise<PaymentIntent> {
     const intent = await this.intentRepo.findOne({ where: { id: intentId } });
     if (!intent) throw new NotFoundException("PaymentIntent introuvable");
     if (intent.status === "succeeded") return intent;
@@ -197,7 +206,9 @@ export class BillingService implements OnModuleInit {
       cancelledAt: new Date(),
       autoRenew: false,
     });
-    return (await this.subRepo.findOne({ where: { id: sub.id } })) as Subscription;
+    return (await this.subRepo.findOne({
+      where: { id: sub.id },
+    })) as Subscription;
   }
 
   // ── Helpers consommés par PlanLimitGuard ─────────────────────────────────

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   Logger,
   InternalServerErrorException,
@@ -27,6 +27,25 @@ export interface VisionResponse {
   raw: object;
   model: string;
   usage: { input_tokens: number; output_tokens: number };
+}
+
+interface ParsedTreatment {
+  produit?: string;
+  matiereActive?: string;
+  dose?: string;
+  modeApplication?: string;
+  prescriptionAgreee?: boolean;
+  [key: string]: unknown;
+}
+
+interface ParsedVisionDiagnosticResult {
+  identification?: string;
+  confidence?: number;
+  severite?: "faible" | "modere" | "severe" | "critique";
+  symptomes?: string;
+  traitements?: ParsedTreatment[];
+  preventionConseils?: string;
+  [key: string]: unknown;
 }
 
 const MODEL = "claude-sonnet-4-6";
@@ -122,9 +141,7 @@ export class ClaudeVisionClient {
       if (e.message.includes("rate")) {
         throw new ServiceUnavailableException("IA surchargée, réessayer");
       }
-      throw new InternalServerErrorException(
-        "Diagnostic IA indisponible",
-      );
+      throw new InternalServerErrorException("Diagnostic IA indisponible");
     }
   }
 
@@ -162,27 +179,30 @@ export class ClaudeVisionClient {
       .replace(/^```\s*/i, "")
       .replace(/```\s*$/i, "")
       .trim();
-    let parsed: any;
+    let parsed: ParsedVisionDiagnosticResult;
     try {
       parsed = JSON.parse(cleaned);
     } catch (err) {
-      this.logger.error(`JSON parse failed for Claude output: ${text.slice(0, 200)}`);
-      throw new InternalServerErrorException(
-        "Réponse IA non parsable",
+      this.logger.error(
+        `JSON parse failed for Claude output: ${text.slice(0, 200)}`,
       );
+      throw new InternalServerErrorException("Réponse IA non parsable");
     }
     return {
       identification: String(parsed.identification ?? "indeterminé"),
       confidence: Number(parsed.confidence ?? 0),
-      severite:
-        ["faible", "modere", "severe", "critique"].includes(parsed.severite)
-          ? parsed.severite
-          : "faible",
+      severite: ["faible", "modere", "severe", "critique"].includes(
+        parsed.severite,
+      )
+        ? parsed.severite
+        : "faible",
       symptomes: String(parsed.symptomes ?? ""),
       traitements: Array.isArray(parsed.traitements)
-        ? parsed.traitements.map((t: any) => ({
+        ? parsed.traitements.map((t: ParsedTreatment) => ({
             produit: String(t.produit ?? ""),
-            matiereActive: t.matiereActive ? String(t.matiereActive) : undefined,
+            matiereActive: t.matiereActive
+              ? String(t.matiereActive)
+              : undefined,
             dose: String(t.dose ?? ""),
             modeApplication: t.modeApplication
               ? String(t.modeApplication)

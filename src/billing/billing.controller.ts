@@ -1,16 +1,5 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from "@nestjs/common";
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-} from "@nestjs/swagger";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -58,12 +47,10 @@ export class BillingController {
   @Roles("admin", "directeur")
   @ApiBearerAuth()
   @ApiOperation({
-    summary: "Souscrire à un plan (gratuit = active, payant = pending_payment + intent)",
+    summary:
+      "Souscrire à un plan (gratuit = active, payant = pending_payment + intent)",
   })
-  subscribe(
-    @Body() body: SubscribeDto,
-    @TenantId() tenantId: string | null,
-  ) {
+  subscribe(@Body() body: SubscribeDto, @TenantId() tenantId: string | null) {
     if (!tenantId) {
       throw new Error("Organisation requise");
     }

@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Patch,
   Delete,
   Param,
@@ -9,10 +8,11 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
-
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { NotificationsService } from "./notifications.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { Request as ExpressRequest } from "express";
+import { AuthenticatedUser } from "../common/interfaces/authenticated-user.interface";
 
 @ApiTags("Notifications")
 @Controller("notifications")
@@ -23,7 +23,7 @@ export class NotificationsController {
 
   @Get()
   findAll(
-    @Request() req: any,
+    @Request() req: ExpressRequest & { user: AuthenticatedUser },
     @Query("page") page?: number,
     @Query("limit") limit?: number,
   ) {
@@ -34,27 +34,22 @@ export class NotificationsController {
   }
 
   @Get("non-lues")
-  findNonLues(@Request() req: any) {
+  findNonLues(@Request() req: ExpressRequest & { user: AuthenticatedUser }) {
     return this.notificationsService.findNonLues(req.user.sub);
   }
 
   @Get("count")
-  getCount(@Request() req: any) {
+  getCount(@Request() req: ExpressRequest & { user: AuthenticatedUser }) {
     return this.notificationsService.getCount(req.user.sub);
   }
 
   @Patch(":id/lue")
-  marcarLue(@Param("id") id: string) {
+  marquerLue(@Param("id") id: string) {
     return this.notificationsService.marquerLue(id);
   }
 
-  @Post("marquer-toutes-lues")
-  marquerToutesLues(@Request() req: any) {
-    return this.notificationsService.marquerToutesLues(req.user.sub);
-  }
-
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.notificationsService.remove(id);
+  delete(@Param("id") id: string) {
+    return this.notificationsService.delete(id);
   }
 }

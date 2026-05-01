@@ -118,7 +118,8 @@ export class AnalyticsService {
         const current = Number(r.current ?? 0);
         const previous = Number(r.previous ?? 0);
         const delta = current - previous;
-        const pct = previous > 0 ? Number(((delta / previous) * 100).toFixed(1)) : null;
+        const pct =
+          previous > 0 ? Number(((delta / previous) * 100).toFixed(1)) : null;
         return {
           culture: r.culture,
           rendementCurrent: Number(current.toFixed(2)),
@@ -145,9 +146,6 @@ export class AnalyticsService {
     const cached = await this.cache.get(key);
     if (cached) return cached;
 
-    const orgClause = organisationId
-      ? "p.organisationId = $1 AND m.organisationId IS NOT NULL"
-      : "1=1";
     const params = organisationId ? [organisationId, limit] : [limit];
     const limitParam = organisationId ? "$2" : "$1";
 
@@ -223,7 +221,8 @@ export class AnalyticsService {
     }
     if (
       organisationId &&
-      (a.organisationId !== organisationId || b.organisationId !== organisationId)
+      (a.organisationId !== organisationId ||
+        b.organisationId !== organisationId)
     ) {
       throw new BadRequestException("Campagne hors scope organisation");
     }

@@ -10,7 +10,12 @@ import {
 
 @Entity("benchmarks_rendement")
 @Index(["culture", "zoneAgroecologique"])
-@Unique("uq_benchmark", ["culture", "zoneAgroecologique", "variete", "typeCampagne"])
+@Unique("uq_benchmark", [
+  "culture",
+  "zoneAgroecologique",
+  "variete",
+  "typeCampagne",
+])
 export class BenchmarkRendement {
   @PrimaryGeneratedColumn("uuid")
   id: string;

@@ -26,6 +26,61 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SkipTenantScope } from "../common/decorators/skip-tenant-scope.decorator";
 import { AuthenticatedUser } from "../common/interfaces/authenticated-user.interface";
 
+// -- Meta WhatsApp webhook payload types ------------------------------------
+
+interface WhatsAppWebhookStatus {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+interface WhatsAppTextBody {
+  body: string;
+}
+
+interface WhatsAppButtonText {
+  text: string;
+}
+
+interface WhatsAppInteractiveButtonReply {
+  title: string;
+}
+
+interface WhatsAppInteractive {
+  button_reply: WhatsAppInteractiveButtonReply;
+}
+
+interface WhatsAppWebhookMessage {
+  id: string;
+  from?: string;
+  text?: WhatsAppTextBody;
+  button?: WhatsAppButtonText;
+  interactive?: WhatsAppInteractive;
+  [key: string]: unknown;
+}
+
+interface WhatsAppWebhookValue {
+  statuses?: WhatsAppWebhookStatus[];
+  messages?: WhatsAppWebhookMessage[];
+  [key: string]: unknown;
+}
+
+interface WhatsAppWebhookChange {
+  value: WhatsAppWebhookValue;
+  [key: string]: unknown;
+}
+
+interface WhatsAppWebhookEntry {
+  changes: WhatsAppWebhookChange[];
+  [key: string]: unknown;
+}
+
+export interface WhatsAppWebhookPayload {
+  object: string;
+  entry: WhatsAppWebhookEntry[];
+  [key: string]: unknown;
+}
+
 class OptInDto {
   phoneE164: string;
   topics?: string[];
@@ -40,7 +95,7 @@ export class WhatsAppController {
     private readonly config: ConfigService,
   ) {}
 
-  // ── Authenticated user-facing endpoints ──────────────────────────────────
+  // -- Authenticated user-facing endpoints ----------------------------------
 
   @Post("opt-in")
   @UseGuards(JwtAuthGuard)
@@ -60,7 +115,7 @@ export class WhatsAppController {
   @Delete("opt-in")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Désactiver WhatsApp (opt-out)" })
+  @ApiOperation({ summary: "D�sactiver WhatsApp (opt-out)" })
   optOut(@CurrentUser() user: AuthenticatedUser) {
     return this.service.optOut(user.sub).then(() => ({ ok: true }));
   }
@@ -76,12 +131,12 @@ export class WhatsAppController {
   @Get("messages")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Historique messages WhatsApp envoyés" })
+  @ApiOperation({ summary: "Historique messages WhatsApp envoy�s" })
   history(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listOutboundForUser(user.sub);
   }
 
-  // ── Public Meta webhook (no JWT, signed) ─────────────────────────────────
+  // -- Public Meta webhook (no JWT, signed) ---------------------------------
 
   @Get("webhook")
   @SkipTenantScope()
@@ -105,12 +160,12 @@ export class WhatsAppController {
   @HttpCode(HttpStatus.OK)
   @SkipTenantScope()
   @ApiOperation({
-    summary: "Webhook entrant Meta (statuts + réponses producteurs)",
+    summary: "Webhook entrant Meta (statuts + r�ponses producteurs)",
   })
   async ingest(
     @Req() req: Request,
     @Headers("x-hub-signature-256") signature: string | undefined,
-    @Body() body: any,
+    @Body() body: WhatsAppWebhookPayload,
   ) {
     this.verifySignature(req, signature);
     return this.service.ingestWebhook(body);
@@ -119,7 +174,7 @@ export class WhatsAppController {
   private verifySignature(req: Request, signature: string | undefined): void {
     const appSecret = this.config.get<string>("WHATSAPP_APP_SECRET") ?? "";
     if (!appSecret) {
-      // No secret configured → accept (dev only); production should always set it
+      // No secret configured ? accept (dev only); production should always set it
       return;
     }
     if (!signature) {
@@ -128,12 +183,11 @@ export class WhatsAppController {
     const raw = (req as unknown as { rawBody?: Buffer }).rawBody;
     if (!raw) {
       throw new Error(
-        "rawBody indisponible — activer rawBody dans NestFactory.create",
+        "rawBody indisponible � activer rawBody dans NestFactory.create",
       );
     }
     const expected =
-      "sha256=" +
-      createHmac("sha256", appSecret).update(raw).digest("hex");
+      "sha256=" + createHmac("sha256", appSecret).update(raw).digest("hex");
     const a = Buffer.from(signature.padEnd(expected.length));
     const b = Buffer.from(expected);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {

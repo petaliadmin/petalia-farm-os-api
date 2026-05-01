@@ -56,7 +56,9 @@ export class WhatsAppCloudClient {
     return Boolean(this.phoneId && this.token);
   }
 
-  async sendTemplate(payload: SendTemplatePayload): Promise<WhatsAppApiResponse> {
+  async sendTemplate(
+    payload: SendTemplatePayload,
+  ): Promise<WhatsAppApiResponse> {
     this.assertConfigured();
     const body = {
       messaging_product: "whatsapp",
@@ -95,16 +97,12 @@ export class WhatsAppCloudClient {
 
   private async post(body: object): Promise<WhatsAppApiResponse> {
     try {
-      const { data } = await this.http.post(
-        `/${this.phoneId}/messages`,
-        body,
-        {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-            "Content-Type": "application/json",
-          },
+      const { data } = await this.http.post(`/${this.phoneId}/messages`, body, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
         },
-      );
+      });
       const waMessageId: string | undefined = data?.messages?.[0]?.id;
       if (!waMessageId) {
         throw new Error("Réponse Meta sans messages[0].id");

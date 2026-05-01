@@ -205,7 +205,10 @@ export class ParcellesService {
 
   async createPoi(parcelleId: string, data: any): Promise<FieldPoi> {
     return this.fieldPoiRepo.save(
-      this.fieldPoiRepo.create({ ...data, parcelleId } as DeepPartial<FieldPoi>),
+      this.fieldPoiRepo.create({
+        ...data,
+        parcelleId,
+      } as DeepPartial<FieldPoi>),
     );
   }
 
