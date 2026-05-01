@@ -1,9 +1,4 @@
-import {
-  Global,
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-} from "@nestjs/common";
+import { Global, MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { BullModule } from "@nestjs/bull";
 import { QUEUE_NAMES } from "../common/queues";
 import { MetricsService } from "./metrics.service";
@@ -24,11 +19,7 @@ import { QueueMetricsCollector } from "./queue-metrics.collector";
     ),
   ],
   controllers: [MetricsController],
-  providers: [
-    MetricsService,
-    MetricsAuthGuard,
-    QueueMetricsCollector,
-  ],
+  providers: [MetricsService, MetricsAuthGuard, QueueMetricsCollector],
   exports: [MetricsService],
 })
 export class MetricsModule implements NestModule {

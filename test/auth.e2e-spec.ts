@@ -9,7 +9,6 @@ import request from "supertest";
  */
 describe("Auth (e2e)", () => {
   let app: INestApplication;
-  let authToken: string | undefined;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -86,9 +85,7 @@ describe("Auth (e2e)", () => {
         .send({ email: "test@example.com", code: "123456" })
         .expect(200);
 
-      if (response.body?.data?.accessToken) {
-        authToken = response.body.data.accessToken;
-      }
+      expect(response.body).toBeDefined();
     });
   });
 
