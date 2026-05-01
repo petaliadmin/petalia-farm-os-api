@@ -16,29 +16,25 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
+    environment:
+      name: staging
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify secrets
+      - name: Verify staging secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] || exit 1
-          [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] || exit 1
-          [ -n "${{ secrets.EC2_HOST }}" ] || exit 1
-          [ -n "${{ secrets.EC2_USER }}" ] || exit 1
-          [ -n "${{ secrets.EC2_SSH_KEY }}" ] || exit 1
-          echo "Secrets OK"
+          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "Secrets not found in environment: staging"
+            exit 1
+          fi
+          echo "Staging secrets OK"
 
-      - name: Prepare remote directory
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            mkdir -p ~/petalia-farm-os
-
-      - name: Copy deployment files
+      - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -61,20 +57,17 @@ jobs:
           envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
 
           script: |
+            mkdir -p ~/petalia-farm-os
             cd ~/petalia-farm-os
-
-            export IMAGE_TAG=${IMAGE_TAG:-latest}
 
             echo "$DOCKERHUB_TOKEN" | docker login \
               -u "$DOCKERHUB_USERNAME" \
               --password-stdin
 
-            docker compose -f docker-compose.deploy.yml pull
+            export IMAGE_TAG=${IMAGE_TAG:-latest}
 
+            docker compose -f docker-compose.deploy.yml pull
             docker compose -f docker-compose.deploy.yml up -d --remove-orphans
 
             docker image prune -af
-
             docker logout
-
-            echo "Deployment successful"
