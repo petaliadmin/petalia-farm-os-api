@@ -34,6 +34,7 @@ import { IrrigationModule } from "./irrigation/irrigation.module";
 import { ExportsModule } from "./exports/exports.module";
 import { MapModule } from "./map/map.module";
 import { MobileModule } from "./mobile/mobile.module";
+import { SatelliteModule } from "./satellite/satellite.module";
 
 @Module({
   imports: [
@@ -118,6 +119,7 @@ import { MobileModule } from "./mobile/mobile.module";
     ExportsModule,
     MapModule,
     MobileModule,
+    SatelliteModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
