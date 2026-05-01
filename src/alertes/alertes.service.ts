@@ -7,10 +7,18 @@ import { Tache } from "../taches/entities/tache.entity";
 import { NdviData } from "../ndvi/entities/ndvi-data.entity";
 import { Notification } from "../notifications/entities/notification.entity";
 import { MeteoService } from "../meteo/meteo.service";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 
 const NDVI_STRESS_THRESHOLD = 0.3;
 const TEMP_HEAT_THRESHOLD = 40;
 const RAIN_HEAVY_THRESHOLD = 30;
+
+const TYPE_TO_TEMPLATE: Record<string, string> = {
+  alerte: "petalia_alerte",
+  avertissement: "petalia_avertissement",
+  info: "petalia_info",
+  succes: "petalia_succes",
+};
 
 @Injectable()
 export class AlertesService {
@@ -23,6 +31,7 @@ export class AlertesService {
     @InjectRepository(Notification)
     private notifRepo: Repository<Notification>,
     private meteo: MeteoService,
+    private whatsapp: WhatsAppService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -194,7 +203,7 @@ export class AlertesService {
 
     void dedupeKey;
 
-    await this.notifRepo.save(
+    const saved = await this.notifRepo.save(
       this.notifRepo.create({
         userId,
         type,
@@ -204,5 +213,20 @@ export class AlertesService {
         lienType: lienType ?? undefined,
       }),
     );
+
+    // Fan-out vers WhatsApp si l'utilisateur a opté
+    try {
+      await this.whatsapp.sendNotification({
+        userId,
+        templateName: TYPE_TO_TEMPLATE[type] ?? "petalia_info",
+        bodyParameters: [titre, message],
+        topic: type,
+        notificationId: saved.id,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `WhatsApp fan-out failed for ${userId}: ${(err as Error).message}`,
+      );
+    }
   }
 }

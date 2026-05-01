@@ -6,11 +6,13 @@ import { Tache } from "../taches/entities/tache.entity";
 import { NdviData } from "../ndvi/entities/ndvi-data.entity";
 import { Notification } from "../notifications/entities/notification.entity";
 import { MeteoModule } from "../meteo/meteo.module";
+import { WhatsAppModule } from "../whatsapp/whatsapp.module";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Parcelle, Tache, NdviData, Notification]),
     MeteoModule,
+    WhatsAppModule,
   ],
   providers: [AlertesService],
   exports: [AlertesService],

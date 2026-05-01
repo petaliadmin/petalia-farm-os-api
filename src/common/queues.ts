@@ -3,6 +3,7 @@ export const QUEUE_NAMES = {
   PDF: "pdf-rapports",
   SMS: "sms",
   ALERTES: "alertes",
+  WHATSAPP: "whatsapp",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

@@ -36,6 +36,7 @@ import { MapModule } from "./map/map.module";
 import { MobileModule } from "./mobile/mobile.module";
 import { SatelliteModule } from "./satellite/satellite.module";
 import { DiagnosticModule } from "./diagnostic/diagnostic.module";
+import { WhatsAppModule } from "./whatsapp/whatsapp.module";
 
 @Module({
   imports: [
@@ -122,6 +123,7 @@ import { DiagnosticModule } from "./diagnostic/diagnostic.module";
     MobileModule,
     SatelliteModule,
     DiagnosticModule,
+    WhatsAppModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
