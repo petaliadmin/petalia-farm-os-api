@@ -29,6 +29,7 @@ import { OrganisationsModule } from "./organisations/organisations.module";
 import { HealthModule } from "./health/health.module";
 import { AlertesModule } from "./alertes/alertes.module";
 import { BenchmarksModule } from "./benchmarks/benchmarks.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { BenchmarksModule } from "./benchmarks/benchmarks.module";
     HealthModule,
     AlertesModule,
     BenchmarksModule,
+    AnalyticsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
