@@ -705,17 +705,17 @@ npm install nestjs-pino pino-http
 | 3.5 | Tuiles vectorielles carte (cluster, heatmap) | 3j | MOYENNE | ✅ |
 | 3.6 | Module irrigation + recommandation eau | 2j | HAUTE | ✅ |
 
-### Sprint 4 — IA & Différenciation (4 semaines) 🟢
-> **Objectif : avantage concurrentiel fort**
+### Sprint 4 — IA & Différenciation (4 semaines) 🟡
+> **Objectif : avantage concurrentiel fort** — *Top-3 ROI livré 2026-05-01 ; 4.2/4.5/4.6 reportés*
 
-| # | Tâche | Effort | Impact |
-|---|---|---|---|
-| 4.1 | Module diagnostic phytosanitaire IA (Claude Vision) | 5j | TRÈS HAUTE |
-| 4.2 | Prédiction prix marché (ML léger) | 4j | HAUTE |
-| 4.3 | Intégration WhatsApp Business (notifications) | 2j | HAUTE |
-| 4.4 | Nouvelles indices satellite (EVI, SAVI, NDWI, LAI) | 3j | HAUTE |
-| 4.5 | B2B API portail partenaires (OAuth2 + quotas) | 4j | HAUTE |
-| 4.6 | Système de souscription freemium | 3j | HAUTE |
+| # | Tâche | Effort | Impact | État |
+|---|---|---|---|---|
+| 4.1 | Module diagnostic phytosanitaire IA (Claude Vision) | 5j | TRÈS HAUTE | ✅ |
+| 4.2 | Prédiction prix marché (ML léger) | 4j | HAUTE | ⏳ |
+| 4.3 | Intégration WhatsApp Business (notifications) | 2j | HAUTE | ✅ |
+| 4.4 | Nouvelles indices satellite (EVI, SAVI, NDWI, LAI) | 3j | HAUTE | ✅ |
+| 4.5 | B2B API portail partenaires (OAuth2 + quotas) | 4j | HAUTE | ⏳ |
+| 4.6 | Système de souscription freemium | 3j | HAUTE | ⏳ |
 
 ### Sprint 5 — Scalabilité & Opérations (2 semaines) 🔵
 > **Objectif : ops production-grade**
