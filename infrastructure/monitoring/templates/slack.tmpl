@@ -1,0 +1,15 @@
+{{ define "slack.title" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+{{ end }}
+
+{{ define "slack.text" }}
+{{ range .Alerts -}}
+*Severity:* {{ .Labels.severity }}
+*Service:* {{ .Labels.service }}
+*Summary:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+{{ if .Labels.instance }}*Instance:* {{ .Labels.instance }}{{ end }}
+{{ if .GeneratorURL }}<{{ .GeneratorURL }}|View graph in Prometheus>{{ end }}
+---
+{{ end }}
+{{ end }}

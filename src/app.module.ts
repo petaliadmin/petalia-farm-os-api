@@ -42,6 +42,8 @@ import { WhatsAppModule } from "./whatsapp/whatsapp.module";
 import { MarketModule } from "./market/market.module";
 import { PartnerModule } from "./partner/partner.module";
 import { BillingModule } from "./billing/billing.module";
+import { MetricsModule } from "./metrics/metrics.module";
+import { AlertingModule } from "./common/alerting/alerting.module";
 
 @Module({
   imports: [
@@ -132,6 +134,8 @@ import { BillingModule } from "./billing/billing.module";
     MarketModule,
     PartnerModule,
     BillingModule,
+    AlertingModule,
+    MetricsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

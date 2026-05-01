@@ -1,0 +1,45 @@
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    cluster: petalia-prod
+    region: af-south-1
+
+rule_files:
+  - "alert.rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: petalia-api
+    metrics_path: /api/metrics
+    scheme: http
+    bearer_token_file: /etc/prometheus/secrets/metrics_token
+    static_configs:
+      - targets:
+          - api-1.internal.petalia.com:3000
+          - api-2.internal.petalia.com:3000
+        labels:
+          service: petalia-api
+
+  - job_name: node-exporter
+    static_configs:
+      - targets:
+          - api-1.internal.petalia.com:9100
+          - api-2.internal.petalia.com:9100
+
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          db: petalia-rds
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          cache: petalia-redis

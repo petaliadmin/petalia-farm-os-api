@@ -1,4 +1,9 @@
-import { Process, Processor, OnQueueFailed } from "@nestjs/bull";
+import {
+  Process,
+  Processor,
+  OnQueueFailed,
+  OnQueueCompleted,
+} from "@nestjs/bull";
 import { Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -7,6 +12,8 @@ import { QUEUE_NAMES } from "../common/queues";
 import { Parcelle } from "../parcelles/entities/parcelle.entity";
 import { NdviData } from "./entities/ndvi-data.entity";
 import { SentinelHubClient } from "./sentinel-hub.client";
+import { MetricsService } from "../metrics/metrics.service";
+import { SlackAlerterService } from "../common/alerting/slack-alerter.service";
 
 export interface NdviFetchJob {
   parcelleId: string;
@@ -23,6 +30,8 @@ export class NdviProcessor {
     @InjectRepository(NdviData)
     private ndviRepo: Repository<NdviData>,
     private sentinelHub: SentinelHubClient,
+    private metrics: MetricsService,
+    private slack: SlackAlerterService,
   ) {}
 
   @Process("fetch")
@@ -79,10 +88,35 @@ export class NdviProcessor {
     return { parcelleId, samples: rows.length };
   }
 
+  @OnQueueCompleted()
+  onCompleted() {
+    this.metrics.queueJobsCompleted.inc({ queue: QUEUE_NAMES.NDVI });
+    this.metrics.recordBusinessEvent("ndvi.fetch", "success");
+  }
+
   @OnQueueFailed()
   onFailed(job: Job, err: Error) {
     this.logger.error(
       `NDVI job ${job.id} (${JSON.stringify(job.data)}) failed: ${err.message}`,
     );
+    this.metrics.queueJobsFailed.inc({
+      queue: QUEUE_NAMES.NDVI,
+      reason: err.name || "Error",
+    });
+    this.metrics.recordBusinessEvent("ndvi.fetch", "failure");
+
+    if (job.attemptsMade >= (job.opts.attempts || 1)) {
+      this.slack.notify({
+        key: `queue.ndvi.failed.${job.name}`,
+        severity: "error",
+        title: "NDVI fetch job failed (final attempt)",
+        message: `Job *${job.id}* failed after ${job.attemptsMade} attempts.`,
+        context: {
+          jobId: String(job.id),
+          parcelleId: (job.data as { parcelleId?: string })?.parcelleId,
+          error: err.message,
+        },
+      });
+    }
   }
 }

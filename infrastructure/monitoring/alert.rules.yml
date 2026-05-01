@@ -1,0 +1,117 @@
+groups:
+  - name: petalia-api-availability
+    interval: 30s
+    rules:
+      - alert: PetaliaApiDown
+        expr: up{job="petalia-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: petalia-api
+        annotations:
+          summary: "Petalia API instance {{ $labels.instance }} is down"
+          description: "Prometheus has not been able to scrape {{ $labels.instance }} for 2 minutes. Check ECS task health and ALB target group."
+
+      - alert: PetaliaApiHighErrorRate
+        expr: |
+          (
+            sum by (instance) (rate(petalia_http_requests_total{status=~"5.."}[5m]))
+            /
+            sum by (instance) (rate(petalia_http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: error
+          service: petalia-api
+        annotations:
+          summary: "Petalia API 5xx error rate above 5% on {{ $labels.instance }}"
+          description: "Sustained server-error rate of {{ $value | humanizePercentage }} for 5 minutes. Investigate recent deploys and DB latency."
+
+      - alert: PetaliaApiHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, route) (rate(petalia_http_request_duration_seconds_bucket[5m]))
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: petalia-api
+        annotations:
+          summary: "p95 latency > 2s on route {{ $labels.route }}"
+          description: "p95 latency is {{ $value }}s. Check upstream APIs (OWM, Sentinel, Claude) and DB queries."
+
+  - name: petalia-queues
+    interval: 30s
+    rules:
+      - alert: PetaliaQueueBacklog
+        expr: petalia_queue_jobs_waiting > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: petalia-queues
+        annotations:
+          summary: "Bull queue {{ $labels.queue }} has {{ $value }} jobs waiting"
+          description: "Backlog persists for 10 minutes. Worker may be down or upstream rate-limiting (Sentinel Hub, WhatsApp)."
+
+      - alert: PetaliaQueueFailureSpike
+        expr: |
+          sum by (queue) (rate(petalia_queue_jobs_failed_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: error
+          service: petalia-queues
+        annotations:
+          summary: "Queue {{ $labels.queue }} failure rate spiking ({{ $value }}/s)"
+          description: "More than 0.5 failed jobs/sec for 5 minutes. Check processor logs and external dependencies."
+
+  - name: petalia-business
+    interval: 1m
+    rules:
+      - alert: PetaliaWhatsAppDeliveryFailure
+        expr: |
+          sum(rate(petalia_business_events_total{event="whatsapp.send",outcome="failure"}[15m]))
+          /
+          sum(rate(petalia_business_events_total{event="whatsapp.send"}[15m]))
+          > 0.1
+        for: 15m
+        labels:
+          severity: error
+          service: whatsapp
+        annotations:
+          summary: "WhatsApp delivery failure rate above 10%"
+          description: "Check Meta Business token validity, template approval status, and quota."
+
+      - alert: PetaliaPaymentProviderDown
+        expr: |
+          increase(petalia_business_events_total{event=~"payment\\..*",outcome="failure"}[10m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: billing
+        annotations:
+          summary: "Multiple payment failures in last 10 minutes"
+          description: "{{ $value }} payment failures across providers. Check Wave/Orange Money status and webhook delivery."
+
+  - name: petalia-system
+    interval: 1m
+    rules:
+      - alert: PetaliaHighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes{job="petalia-api"} / 1024 / 1024) > 800
+        for: 10m
+        labels:
+          severity: warning
+          service: petalia-api
+        annotations:
+          summary: "API memory usage above 800 MB on {{ $labels.instance }}"
+          description: "Memory leak suspected. Investigate PDF generation, NDVI processing, or in-memory caches."
+
+      - alert: PetaliaEventLoopLag
+        expr: nodejs_eventloop_lag_seconds{job="petalia-api"} > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: petalia-api
+        annotations:
+          summary: "Node.js event loop lag > 200ms on {{ $labels.instance }}"
+          description: "Synchronous CPU-bound work is blocking the event loop. Move heavy work to a Bull worker."

@@ -1,4 +1,9 @@
-import { Process, Processor, OnQueueFailed } from "@nestjs/bull";
+import {
+  Process,
+  Processor,
+  OnQueueFailed,
+  OnQueueCompleted,
+} from "@nestjs/bull";
 import { Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -8,6 +13,8 @@ import { QUEUE_NAMES } from "../common/queues";
 import { Visite } from "../visites/entities/visite.entity";
 import { Tache } from "../taches/entities/tache.entity";
 import { Recolte } from "../recoltes/entities/recolte.entity";
+import { MetricsService } from "../metrics/metrics.service";
+import { SlackAlerterService } from "../common/alerting/slack-alerter.service";
 
 export interface PdfGenerationJob {
   organisationId: string | null;
@@ -25,6 +32,8 @@ export class RapportsProcessor {
     @InjectRepository(Visite) private visitesRepo: Repository<Visite>,
     @InjectRepository(Tache) private tachesRepo: Repository<Tache>,
     @InjectRepository(Recolte) private recoltesRepo: Repository<Recolte>,
+    private metrics: MetricsService,
+    private slack: SlackAlerterService,
   ) {}
 
   @Process("generate")
@@ -224,11 +233,37 @@ export class RapportsProcessor {
     return labels[type] || type;
   }
 
+  @OnQueueCompleted()
+  onCompleted() {
+    this.metrics.queueJobsCompleted.inc({ queue: QUEUE_NAMES.PDF });
+    this.metrics.recordBusinessEvent("rapport.pdf", "success");
+  }
+
   @OnQueueFailed()
   async onFailed(job: Job<PdfGenerationJob>, err: Error) {
     this.logger.error(
       `PDF generation job ${job.id} failed: ${err.message}`,
       err.stack,
     );
+    this.metrics.queueJobsFailed.inc({
+      queue: QUEUE_NAMES.PDF,
+      reason: err.name || "Error",
+    });
+    this.metrics.recordBusinessEvent("rapport.pdf", "failure");
+
+    if (job.attemptsMade >= (job.opts.attempts || 1)) {
+      this.slack.notify({
+        key: `queue.pdf.failed.${job.data?.type}`,
+        severity: "error",
+        title: "PDF rapport job failed (final attempt)",
+        message: `Rapport *${job.data?.type}* (${job.data?.periode}) failed.`,
+        context: {
+          jobId: String(job.id),
+          organisationId: job.data?.organisationId || "n/a",
+          attempts: job.attemptsMade,
+          error: err.message,
+        },
+      });
+    }
   }
 }

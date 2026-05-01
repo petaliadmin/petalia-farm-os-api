@@ -82,6 +82,9 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
+    environment:
+      name: staging
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
