@@ -4,6 +4,7 @@ import { RapportsService } from "./rapports.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { TenantId } from "../common/decorators/tenant-id.decorator";
 
 @ApiTags("Rapports")
 @Controller("rapports")
@@ -13,13 +14,16 @@ export class RapportsController {
   constructor(private rapportsService: RapportsService) {}
 
   @Get("kpis")
-  getKpis(@Query("periode") periode: "semaine" | "mois" | "saison" = "mois") {
-    return this.rapportsService.getKpis(periode);
+  getKpis(
+    @Query("periode") periode: "semaine" | "mois" | "saison" = "mois",
+    @TenantId() tenantId: string | null,
+  ) {
+    return this.rapportsService.getKpis(periode, tenantId);
   }
 
   @Get("graphiques")
-  getGraphiques() {
-    return this.rapportsService.getGraphiques();
+  getGraphiques(@TenantId() tenantId: string | null) {
+    return this.rapportsService.getGraphiques(tenantId);
   }
 
   @Post("export")
@@ -32,7 +36,7 @@ export class RapportsController {
 
   @Get("economiques")
   @Roles("admin", "directeur", "superviseur")
-  getEconomiques() {
-    return this.rapportsService.getEconomiques();
+  getEconomiques(@TenantId() tenantId: string | null) {
+    return this.rapportsService.getEconomiques(tenantId);
   }
 }
