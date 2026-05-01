@@ -31,6 +31,7 @@ import { AlertesModule } from "./alertes/alertes.module";
 import { BenchmarksModule } from "./benchmarks/benchmarks.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { IrrigationModule } from "./irrigation/irrigation.module";
+import { ExportsModule } from "./exports/exports.module";
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { IrrigationModule } from "./irrigation/irrigation.module";
     BenchmarksModule,
     AnalyticsModule,
     IrrigationModule,
+    ExportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
