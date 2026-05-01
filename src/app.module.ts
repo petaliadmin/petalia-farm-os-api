@@ -39,6 +39,7 @@ import { DiagnosticModule } from "./diagnostic/diagnostic.module";
 import { WhatsAppModule } from "./whatsapp/whatsapp.module";
 import { MarketModule } from "./market/market.module";
 import { PartnerModule } from "./partner/partner.module";
+import { BillingModule } from "./billing/billing.module";
 
 @Module({
   imports: [
@@ -128,6 +129,7 @@ import { PartnerModule } from "./partner/partner.module";
     WhatsAppModule,
     MarketModule,
     PartnerModule,
+    BillingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
