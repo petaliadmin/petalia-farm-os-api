@@ -38,26 +38,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: IMAGE_TAG,DOCKERHUB_USERNAME
           script: |
-            cd /home/${{ secrets.EC2_USER }}/petalia-farm-os
-
-            # DockerHub login
+            cd petalia-farm-os
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-            # Set image tag (use commit SHA or fallback to latest)
             export IMAGE_TAG=${IMAGE_TAG:-latest}
-            export DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME
-
-            # Pull new image
+            export DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}
             docker compose -f docker-compose.deploy.yml pull
-
-            # Restart containers with new image
             docker compose -f docker-compose.deploy.yml down
             docker compose -f docker-compose.deploy.yml up -d
-
-            # Clean up old images
             docker image prune -f
-
-            # DockerHub logout
             docker logout
-
-            echo "Deployment complete — $IMAGE_TAG"
