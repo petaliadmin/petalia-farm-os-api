@@ -5,6 +5,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { CacheModule } from "@nestjs/cache-manager";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { BullModule } from "@nestjs/bull";
 import { redisStore } from "cache-manager-redis-yet";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 
@@ -66,6 +67,23 @@ import { HealthModule } from "./health/health.module";
     ThrottlerModule.forRoot([
       { name: "global", ttl: 60_000, limit: 120 },
     ]),
+
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        redis: {
+          host: config.get("REDIS_HOST", "localhost"),
+          port: config.get<number>("REDIS_PORT", 6379),
+          password: config.get("REDIS_PASSWORD") || undefined,
+        },
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          removeOnComplete: { age: 24 * 3600, count: 1000 },
+          removeOnFail: { age: 7 * 24 * 3600 },
+        },
+      }),
+    }),
 
     ScheduleModule.forRoot(),
     AuthModule,
