@@ -41,13 +41,26 @@ export class InteropService {
     }
   }
 
-  buildHmacSignature(data: object): string {
-    const secret = this.configService.get<string>("BANK_API_SECRET", "");
-    if (!secret) return "sha256=<BANK_API_SECRET_not_configured>";
-    const payload = JSON.stringify(data);
-    return (
-      "sha256=" + createHmac("sha256", secret).update(payload).digest("hex")
-    );
+  /**
+   * Signs an outbound payload for a bank/insurance partner.
+   * Returns headers to attach to the HTTP response.
+   * Anti-replay: callers MUST verify timestamp is within 5 min window on receipt.
+   */
+  signOutbound(data: object): {
+    timestamp: string;
+    signature: string;
+  } {
+    const secret = this.configService.get<string>("INTEROP_BANK_SECRET", "");
+    if (!secret) {
+      throw new InternalServerErrorException(
+        "INTEROP_BANK_SECRET non configuré",
+      );
+    }
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const payload = `${timestamp}.${JSON.stringify(data)}`;
+    const signature =
+      "sha256=" + createHmac("sha256", secret).update(payload).digest("hex");
+    return { timestamp, signature };
   }
 
   async getScoreCredit(nationalId: string) {
@@ -71,9 +84,15 @@ export class InteropService {
       certifie_par: "Petalia AgroAssist",
       date_rapport: new Date().toISOString().split("T")[0],
     };
+    const { timestamp, signature } = this.signOutbound(report);
     return {
-      ...report,
-      signature_hmac: this.buildHmacSignature(report),
+      data: report,
+      meta: {
+        signature_algo: "HMAC-SHA256",
+        signature_format: "sha256=hex(HMAC(secret, timestamp + '.' + body))",
+        timestamp,
+        signature,
+      },
     };
   }
 
