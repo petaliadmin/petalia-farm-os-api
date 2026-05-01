@@ -8,12 +8,17 @@ import {
   Request,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { Throttle, SkipThrottle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import {
   LoginDto,
   RefreshDto,
   ChangePasswordDto,
   UpdateProfileDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  OtpSendDto,
+  OtpVerifyDto,
 } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 
@@ -23,22 +28,22 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post("login")
-  @ApiOperation({
-    summary:
-      "Connexion utilisateur - retourne { success, user: { ...User, token } }",
-  })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: "Connexion email/password — retourne JWT" })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
   @Post("logout")
-  @ApiOperation({ summary: "Déconnexion (fire-and-forget pour Angular)" })
+  @SkipThrottle()
+  @ApiOperation({ summary: "Déconnexion" })
   async logout(@Request() req: any) {
     await this.authService.logout(req.user?.sub);
     return {};
   }
 
   @Post("refresh")
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: "Rafraîchir le token JWT" })
   async refresh(@Body() refreshDto: RefreshDto) {
     return this.authService.refresh(refreshDto);
@@ -46,6 +51,7 @@ export class AuthController {
 
   @Get("me")
   @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
   @ApiBearerAuth()
   @ApiOperation({ summary: "Profil utilisateur connecté" })
   async getProfile(@Request() req: any) {
@@ -55,6 +61,7 @@ export class AuthController {
 
   @Patch("me")
   @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
   @ApiBearerAuth()
   @ApiOperation({ summary: "Mettre à jour le profil utilisateur" })
   async updateProfile(
@@ -67,6 +74,7 @@ export class AuthController {
 
   @Post("change-password")
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiBearerAuth()
   @ApiOperation({ summary: "Changer le mot de passe" })
   async changePassword(
@@ -77,20 +85,30 @@ export class AuthController {
   }
 
   @Post("forgot-password")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiOperation({ summary: "Demander un lien de réinitialisation" })
-  async forgotPassword(@Body("email") email: string) {
-    return this.authService.forgotPassword(email);
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Post("reset-password")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @ApiOperation({ summary: "Réinitialiser le mot de passe avec le token reçu" })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 
   @Post("login/otp/send")
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiOperation({ summary: "Envoyer code OTP par SMS" })
-  async sendOtp(@Body("phone") phone: string) {
-    return this.authService.sendOtp(phone);
+  async sendOtp(@Body() dto: OtpSendDto) {
+    return this.authService.sendOtp(dto.phone);
   }
 
   @Post("login/otp/verify")
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: "Vérifier code OTP" })
-  async verifyOtp(@Body() body: { phone: string; code: string }) {
-    return this.authService.verifyOtp(body.phone, body.code);
+  async verifyOtp(@Body() dto: OtpVerifyDto) {
+    return this.authService.verifyOtp(dto.phone, dto.code);
   }
 }

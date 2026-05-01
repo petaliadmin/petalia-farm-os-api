@@ -21,13 +21,25 @@ export async function configureApp(app: INestApplication): Promise<void> {
     }),
   );
 
+  const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:4200")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin non autorisée — ${origin}`));
+      }
+    },
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: [
       "Authorization",
       "X-App-Version",
+      "X-Device-Key",
       "Accept-Language",
       "Content-Type",
     ],

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DeepPartial, Repository } from "typeorm";
 import { AgroRule } from "./entities/agro-rule.entity";
 import { ExpertRequest } from "./entities/expert-request.entity";
 import { Parcelle } from "../parcelles/entities/parcelle.entity";
@@ -31,7 +31,7 @@ export class SyncService {
     data: any,
   ): Promise<{ id: string; status: string; receivedAt: string }> {
     const request = await this.expertRequestRepo.save(
-      this.expertRequestRepo.create(data),
+      this.expertRequestRepo.create(data as DeepPartial<ExpertRequest>),
     );
     return {
       id: request.id,

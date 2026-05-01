@@ -1,8 +1,10 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CacheModule } from "@nestjs/cache-manager";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { redisStore } from "cache-manager-redis-yet";
 
 import { AuthModule } from "./auth/auth.module";
@@ -21,6 +23,8 @@ import { WebhooksModule } from "./webhooks/webhooks.module";
 import { SyncModule } from "./sync/sync.module";
 import { InteropModule } from "./interop/interop.module";
 import { EquipesModule } from "./equipes/equipes.module";
+import { OrganisationsModule } from "./organisations/organisations.module";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
@@ -58,6 +62,10 @@ import { EquipesModule } from "./equipes/equipes.module";
       }),
     }),
 
+    ThrottlerModule.forRoot([
+      { name: "global", ttl: 60_000, limit: 120 },
+    ]),
+
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
@@ -75,6 +83,9 @@ import { EquipesModule } from "./equipes/equipes.module";
     SyncModule,
     InteropModule,
     EquipesModule,
+    OrganisationsModule,
+    HealthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

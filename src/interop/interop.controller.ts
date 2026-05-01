@@ -1,5 +1,13 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Headers,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from "@nestjs/swagger";
 import { InteropService } from "./interop.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -14,6 +22,7 @@ export class InteropController {
 
   @Get("banque/score-credit/:nationalId")
   @Roles("admin", "directeur", "partenaire")
+  @ApiOperation({ summary: "Score crédit agriculteur pour banques partenaires" })
   getScoreCredit(@Param("nationalId") nationalId: string) {
     return this.interopService.getScoreCredit(nationalId);
   }
@@ -48,8 +57,26 @@ export class InteropController {
     return this.interopService.declareSinistre(data);
   }
 
+  /**
+   * Webhook appelé par le partenaire assurance après validation d'indemnisation.
+   * Authentifié par HMAC-SHA256 dans le header X-Insurance-Signature.
+   * Ce endpoint est volontairement hors JWT (appelé par un système tiers).
+   */
   @Post("assurance/indemnisation/webhook")
-  indemnisationWebhook(@Body() data: any) {
+  @UseGuards() // Override class-level guards — no JWT for inbound webhooks
+  @ApiHeader({
+    name: "X-Insurance-Signature",
+    description: "sha256=<HMAC-SHA256 du body avec INSURANCE_WEBHOOK_SECRET>",
+    required: true,
+  })
+  @ApiOperation({
+    summary: "Webhook indemnisation assurance (authentifié par HMAC)",
+  })
+  indemnisationWebhook(
+    @Headers("x-insurance-signature") sig: string,
+    @Body() data: any,
+  ) {
+    this.interopService.validateInsuranceSignature(sig, JSON.stringify(data));
     return this.interopService.indemnisationWebhook(data);
   }
 

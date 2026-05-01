@@ -4,6 +4,7 @@ import {
   MinLength,
   IsOptional,
   IsNotEmpty,
+  Matches,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -12,9 +13,9 @@ export class LoginDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: "motdepasse" })
+  @ApiProperty({ example: "Petalia@2025!" })
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   password: string;
 }
 
@@ -45,9 +46,13 @@ export class ChangePasswordDto {
   @IsString()
   currentPassword: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: "Min 10 chars, 1 majuscule, 1 chiffre, 1 symbole" })
   @IsString()
-  @MinLength(6)
+  @MinLength(10)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\-_#]).{10,}$/, {
+    message:
+      "Le mot de passe doit contenir au moins 10 caractères, une majuscule, un chiffre et un symbole",
+  })
   newPassword: string;
 }
 
@@ -77,11 +82,16 @@ export class ForgotPasswordDto {
 export class ResetPasswordDto {
   @ApiProperty()
   @IsString()
+  @IsNotEmpty()
   token: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: "Min 10 chars, 1 majuscule, 1 chiffre, 1 symbole" })
   @IsString()
-  @MinLength(6)
+  @MinLength(10)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\-_#]).{10,}$/, {
+    message:
+      "Le mot de passe doit contenir au moins 10 caractères, une majuscule, un chiffre et un symbole",
+  })
   newPassword: string;
 }
 

@@ -4,24 +4,29 @@ import {
   MinLength,
   IsOptional,
   IsEnum,
-  IsMongoId,
+  IsUUID,
+  Matches,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateUserDto {
-  @ApiProperty({ example: "user@example.com" })
+  @ApiPropertyOptional({ example: "user@example.com" })
   @IsEmail()
   @IsOptional()
   email?: string;
 
-  @ApiProperty({ example: "+221XXXXXXXXX" })
+  @ApiPropertyOptional({ example: "+221XXXXXXXXX" })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: "password123" })
+  @ApiProperty({ description: "Min 10 chars, 1 majuscule, 1 chiffre, 1 symbole" })
   @IsString()
-  @MinLength(6)
+  @MinLength(10)
+  @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\-_#]).{10,}$/, {
+    message:
+      "Le mot de passe doit contenir au moins 10 caractères, une majuscule, un chiffre et un symbole",
+  })
   password: string;
 
   @ApiProperty({ example: "Diallo" })
@@ -39,12 +44,12 @@ export class CreateUserDto {
   role: string;
 
   @ApiPropertyOptional()
-  @IsMongoId()
+  @IsUUID()
   @IsOptional()
   organisationId?: string;
 
   @ApiPropertyOptional()
-  @IsMongoId()
+  @IsUUID()
   @IsOptional()
   equipeId?: string;
 
@@ -71,12 +76,12 @@ export class UpdateUserDto {
   role?: string;
 
   @ApiPropertyOptional()
-  @IsMongoId()
+  @IsUUID()
   @IsOptional()
   organisationId?: string;
 
   @ApiPropertyOptional()
-  @IsMongoId()
+  @IsUUID()
   @IsOptional()
   equipeId?: string;
 
@@ -88,4 +93,7 @@ export class UpdateUserDto {
   @ApiPropertyOptional()
   @IsOptional()
   actif?: boolean;
+
+  // Internal — not exposed via API, used by service layer
+  passwordHash?: string;
 }

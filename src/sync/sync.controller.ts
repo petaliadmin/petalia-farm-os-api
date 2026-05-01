@@ -1,9 +1,14 @@
-import { Controller, Get, Post, Body, Query } from "@nestjs/common";
-import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { Controller, Get, Post, Body, Query, UseGuards } from "@nestjs/common";
+import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { SyncService } from "./sync.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { SkipThrottle } from "@nestjs/throttler";
 
 @ApiTags("Sync (Flutter)")
 @Controller("v1")
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@SkipThrottle() // Sync is high-frequency from mobile — global throttle doesn't apply
 export class SyncController {
   constructor(private syncService: SyncService) {}
 

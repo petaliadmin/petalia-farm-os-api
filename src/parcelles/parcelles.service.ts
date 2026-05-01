@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, DeepPartial, Repository } from "typeorm";
 import { Parcelle } from "./entities/parcelle.entity";
 import { FieldPoi } from "./entities/field-poi.entity";
 import { CreateParcelleDto, UpdateParcelleDto } from "./dto/parcelles.dto";
@@ -205,7 +205,7 @@ export class ParcellesService {
 
   async createPoi(parcelleId: string, data: any): Promise<FieldPoi> {
     return this.fieldPoiRepo.save(
-      this.fieldPoiRepo.create({ ...data, parcelleId }),
+      this.fieldPoiRepo.create({ ...data, parcelleId } as DeepPartial<FieldPoi>),
     );
   }
 
