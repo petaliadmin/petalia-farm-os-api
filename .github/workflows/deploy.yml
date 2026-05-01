@@ -8,17 +8,37 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    environment: staging
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.deploy.yml to EC2
+      - name: Verify secrets
+        run: |
+          [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] || exit 1
+          [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ] || exit 1
+          [ -n "${{ secrets.EC2_HOST }}" ] || exit 1
+          [ -n "${{ secrets.EC2_USER }}" ] || exit 1
+          [ -n "${{ secrets.EC2_SSH_KEY }}" ] || exit 1
+          echo "Secrets OK"
+
+      - name: Prepare remote directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p ~/petalia-farm-os
+
+      - name: Copy deployment files
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -32,18 +52,29 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE_TAG,DOCKERHUB_USERNAME
+          envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+
           script: |
-            cd petalia-farm-os
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            cd ~/petalia-farm-os
+
             export IMAGE_TAG=${IMAGE_TAG:-latest}
-            export DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}
+
+            echo "$DOCKERHUB_TOKEN" | docker login \
+              -u "$DOCKERHUB_USERNAME" \
+              --password-stdin
+
             docker compose -f docker-compose.deploy.yml pull
-            docker compose -f docker-compose.deploy.yml down
-            docker compose -f docker-compose.deploy.yml up -d
-            docker image prune -f
+
+            docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+
+            docker image prune -af
+
             docker logout
+
+            echo "Deployment successful"
