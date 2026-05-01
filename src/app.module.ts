@@ -37,6 +37,7 @@ import { MobileModule } from "./mobile/mobile.module";
 import { SatelliteModule } from "./satellite/satellite.module";
 import { DiagnosticModule } from "./diagnostic/diagnostic.module";
 import { WhatsAppModule } from "./whatsapp/whatsapp.module";
+import { MarketModule } from "./market/market.module";
 
 @Module({
   imports: [
@@ -124,6 +125,7 @@ import { WhatsAppModule } from "./whatsapp/whatsapp.module";
     SatelliteModule,
     DiagnosticModule,
     WhatsAppModule,
+    MarketModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
