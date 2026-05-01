@@ -233,7 +233,12 @@ export class AuthService {
   }
 
   private signToken(user: User): string {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      organisationId: user.organisationId,
+    };
     const expiresIn =
       this.configService.get<string>("JWT_EXPIRES_IN") || "8h";
     return this.jwtService.sign(payload, { expiresIn });

@@ -6,6 +6,7 @@ import { CacheModule } from "@nestjs/cache-manager";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { redisStore } from "cache-manager-redis-yet";
+import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -86,6 +87,9 @@ import { HealthModule } from "./health/health.module";
     OrganisationsModule,
     HealthModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: TenantScopeGuard },
+  ],
 })
 export class AppModule {}
