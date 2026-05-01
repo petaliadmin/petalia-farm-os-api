@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { AppModule } from "../src/app.module";
-import * as request from "supertest";
+import request from "supertest";
 
 /**
  * E2E Health Check Tests — Validates system readiness

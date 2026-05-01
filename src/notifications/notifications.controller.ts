@@ -50,6 +50,6 @@ export class NotificationsController {
 
   @Delete(":id")
   delete(@Param("id") id: string) {
-    return this.notificationsService.delete(id);
+    return this.notificationsService.remove(id);
   }
 }

@@ -16,12 +16,6 @@ export interface PartnerRequestContext {
   scopes: ApiKeyScope[];
 }
 
-declare module "express-serve-static-core" {
-  interface Request {
-    partner?: PartnerRequestContext;
-  }
-}
-
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
   constructor(

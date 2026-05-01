@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { AppModule } from "../src/app.module";
-import * as request from "supertest";
+import request from "supertest";
 
 /**
  * E2E Auth Tests — Validates authentication flows
@@ -9,6 +9,7 @@ import * as request from "supertest";
  */
 describe("Auth (e2e)", () => {
   let app: INestApplication;
+  let authToken: string | undefined;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

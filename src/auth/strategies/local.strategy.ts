@@ -10,11 +10,18 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     super({ usernameField: "email" });
   }
 
-  async validate(email: string, password: string): Promise<AuthenticatedUser> {
+  async validate(
+    email: string,
+    password: string,
+  ): Promise<Pick<AuthenticatedUser, "sub" | "email" | "role">> {
     const user = await this.authService.validateUser(email, password);
     if (!user) {
       throw new UnauthorizedException("Identifiants invalides");
     }
-    return { sub: user.id, email: user.email, role: user.role };
+    return {
+      sub: user.id,
+      email: user.email,
+      role: user.role as AuthenticatedUser["role"],
+    };
   }
 }

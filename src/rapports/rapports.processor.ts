@@ -8,7 +8,8 @@ import { Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Job } from "bull";
-import PDFDocument from "pdfkit";
+import PDFDocument = require("pdfkit");
+type PDFDoc = InstanceType<typeof PDFDocument>;
 import { QUEUE_NAMES } from "../common/queues";
 import { Visite } from "../visites/entities/visite.entity";
 import { Tache } from "../taches/entities/tache.entity";
@@ -94,7 +95,7 @@ export class RapportsProcessor {
     };
   }
 
-  private addHeader(doc: PDFDocument, type: string) {
+  private addHeader(doc: PDFDoc, type: string) {
     doc
       .fontSize(20)
       .font("Helvetica-Bold")
@@ -115,7 +116,7 @@ export class RapportsProcessor {
     doc.y += 20;
   }
 
-  private addFooter(doc: PDFDocument) {
+  private addFooter(doc: PDFDoc) {
     const pageCount = doc.bufferedPageRange().count;
     for (let i = 1; i <= pageCount; i++) {
       doc.switchToPage(i - 1);
@@ -128,7 +129,7 @@ export class RapportsProcessor {
   }
 
   private async addSyntheseContent(
-    doc: PDFDocument,
+    doc: PDFDoc,
     organisationId: string | null,
     _periode: string,
   ) {
@@ -155,7 +156,7 @@ export class RapportsProcessor {
   }
 
   private async addVisitesContent(
-    doc: PDFDocument,
+    doc: PDFDoc,
     organisationId: string | null,
     _periode: string,
   ) {
@@ -188,7 +189,7 @@ export class RapportsProcessor {
   }
 
   private async addRecoltesContent(
-    doc: PDFDocument,
+    doc: PDFDoc,
     organisationId: string | null,
     _periode: string,
   ) {

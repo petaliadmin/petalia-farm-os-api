@@ -7,7 +7,7 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
-import { AuthenticatedUser } from "../../common/interfaces/authenticated-user.interface";
+import { AuthenticatedUser } from "../common/interfaces/authenticated-user.interface";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Throttle, SkipThrottle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";

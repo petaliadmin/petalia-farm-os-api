@@ -47,14 +47,14 @@ interface FlutterParcel {
   previousCrop?: string;
 }
 
-interface SyncPushResult {
+export interface SyncPushResult {
   processed: number;
   errors: SyncError[];
   conflicts: SyncConflict[];
   serverTimestamp: string;
 }
 
-interface SyncPullResult {
+export interface SyncPullResult {
   parcels: FlutterParcel[];
   agro_rules: AgroRule[];
   serverTimestamp: string;

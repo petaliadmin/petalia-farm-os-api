@@ -1,5 +1,13 @@
-import { IsEmail, IsString, MinLength, IsNotEmpty } from "class-validator";
-import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsNotEmpty,
+  IsOptional,
+  Length,
+  Matches,
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export interface JwtPayload {
   sub: string;
@@ -39,4 +47,76 @@ export class RefreshDto {
   @IsString()
   @IsNotEmpty()
   token: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(8)
+  currentPassword: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+
+export class UpdateProfileDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  nom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  prenom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?\d{8,15}$/, { message: "Numéro de téléphone invalide" })
+  phone?: string;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: "user@example.com" })
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+
+export class OtpSendDto {
+  @ApiProperty({ example: "+221770000000" })
+  @IsString()
+  @Matches(/^\+?\d{8,15}$/, { message: "Numéro de téléphone invalide" })
+  phone: string;
+}
+
+export class OtpVerifyDto {
+  @ApiProperty({ example: "+221770000000" })
+  @IsString()
+  @Matches(/^\+?\d{8,15}$/, { message: "Numéro de téléphone invalide" })
+  phone: string;
+
+  @ApiProperty({ example: "123456" })
+  @IsString()
+  @Length(6, 6)
+  code: string;
 }
