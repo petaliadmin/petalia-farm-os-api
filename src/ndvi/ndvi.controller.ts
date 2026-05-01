@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { NdviService } from "./ndvi.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { TenantId } from "../common/decorators/tenant-id.decorator";
 
 @ApiTags("NDVI")
 @Controller("ndvi")
@@ -22,12 +23,15 @@ export class NdviController {
 
   @Post("parcelle/:parcelleId/fetch")
   @ApiOperation({ summary: "Trigger NDVI fetch from satellite (async)" })
-  fetchNdvi(@Param("parcelleId") parcelleId: string) {
-    return this.ndviService.fetchNdvi(parcelleId);
+  fetchNdvi(
+    @Param("parcelleId") parcelleId: string,
+    @TenantId() tenantId: string | null,
+  ) {
+    return this.ndviService.fetchNdvi(parcelleId, tenantId);
   }
 
   @Get("dashboard")
-  getDashboard() {
-    return this.ndviService.getDashboard();
+  getDashboard(@TenantId() tenantId: string | null) {
+    return this.ndviService.getDashboard(tenantId);
   }
 }
