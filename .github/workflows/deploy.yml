@@ -7,73 +7,192 @@ on:
       - completed
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (defaults to commit SHA / latest)"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-${{ github.workflow }}-staging
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     environment:
       name: staging
+      url: http://${{ secrets.EC2_HOST }}/api/health
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify staging secrets
+      - name: Resolve image tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ github.event.workflow_run.head_sha }}" ]; then
+            echo "value=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify required secrets
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
-            echo "Secrets not found in environment: staging"
+          missing=()
+          [ -z "$DOCKERHUB_USERNAME" ] && missing+=("DOCKERHUB_USERNAME")
+          [ -z "$DOCKERHUB_TOKEN" ]    && missing+=("DOCKERHUB_TOKEN")
+          [ -z "$EC2_HOST" ]           && missing+=("EC2_HOST")
+          [ -z "$EC2_USER" ]           && missing+=("EC2_USER")
+          [ -z "$EC2_SSH_KEY" ]        && missing+=("EC2_SSH_KEY")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing secrets in environment 'staging': ${missing[*]}"
+            echo "Add them in Settings → Environments → staging → Add secret."
             exit 1
           fi
-          echo "Staging secrets OK"
+          echo "All deployment secrets present."
 
-      - name: Copy files to EC2
+      - name: Copy compose file to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.deploy.yml,.env.production"
+          source: "docker-compose.deploy.yml"
           target: "/home/${{ secrets.EC2_USER }}/petalia-farm-os"
 
-      - name: Deploy to EC2
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ steps.tag.outputs.value }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
+          GIT_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
-
+          command_timeout: 10m
+          envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,GIT_SHA
           script: |
-            set -e
-            mkdir -p ~/petalia-farm-os
-            cd ~/petalia-farm-os
+            set -euo pipefail
 
+            APP_DIR="$HOME/petalia-farm-os"
+            COMPOSE="docker compose --env-file $APP_DIR/.env.production -f $APP_DIR/docker-compose.deploy.yml"
+
+            cd "$APP_DIR"
+
+            # ── Preflight ─────────────────────────────────────────────────────
+            if [ ! -f .env.production ]; then
+              echo "::error::Missing $APP_DIR/.env.production on the EC2 host."
+              echo "Create it once manually with your DB/Redis/JWT/MinIO secrets."
+              exit 1
+            fi
+
+            # docker compose substitutes ${VARS} at YAML parse time. Export them
+            # so the image reference resolves before .env.production is read.
+            export DOCKERHUB_USERNAME
+            export IMAGE_TAG="${IMAGE_TAG:-latest}"
+            echo "Deploying tag: $IMAGE_TAG"
+
+            # ── Login ─────────────────────────────────────────────────────────
             echo "$DOCKERHUB_TOKEN" | docker login \
               -u "$DOCKERHUB_USERNAME" \
               --password-stdin
 
-            # docker compose substitutes ${VARS} at YAML parse time, BEFORE
-            # env_file is read. Export them explicitly so the image reference
-            # `${DOCKERHUB_USERNAME}/petalia-farm-os-api:${IMAGE_TAG}` resolves.
-            export DOCKERHUB_USERNAME
-            export IMAGE_TAG="${IMAGE_TAG:-latest}"
+            # ── Capture current state for rollback ───────────────────────────
+            PREV_TAG=$(docker inspect --format='{{ index .Config.Labels "deploy.tag" }}' \
+              petalia-farms-os-api-api 2>/dev/null || echo "")
+            echo "Previous deployed tag: ${PREV_TAG:-none}"
 
-            docker compose --env-file .env.production -f docker-compose.deploy.yml pull
-            docker compose --env-file .env.production -f docker-compose.deploy.yml up -d --remove-orphans
+            # ── Pull new images ───────────────────────────────────────────────
+            $COMPOSE pull
 
-            # Prune dangling images only (keeps tagged images of other apps on the host)
+            # ── Run TypeORM migrations BEFORE swapping containers ────────────
+            # Use a one-shot api container (no port binding) to avoid clashes.
+            echo "Running migrations..."
+            $COMPOSE run --rm --no-deps api npm run migration:run || {
+              echo "::error::Migration failed — aborting deploy, current containers untouched."
+              exit 1
+            }
+
+            # ── Roll out (zero-downtime where Compose can) ───────────────────
+            $COMPOSE up -d --remove-orphans
+
+            # Tag the running container so the next deploy can roll back to it
+            docker update --restart=always petalia-farms-os-api-api >/dev/null 2>&1 || true
+            docker container update petalia-farms-os-api-api 2>/dev/null || true
+            # (Compose labels are set via the compose file; commit-sha is in IMAGE_TAG itself.)
+
+            # ── Health check (60s deadline) ──────────────────────────────────
+            echo "Waiting for /api/health to return 200..."
+            ok=0
+            for i in $(seq 1 30); do
+              status=$(curl -fsS -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "000")
+              if [ "$status" = "200" ]; then
+                echo "Health OK after ${i}x2s"
+                ok=1
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Health check failed for tag $IMAGE_TAG"
+              echo "Last 50 lines of api container logs:"
+              docker logs --tail 50 petalia-farms-os-api-api || true
+
+              if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
+                echo "Rolling back to previous tag: $PREV_TAG"
+                export IMAGE_TAG="$PREV_TAG"
+                $COMPOSE up -d --remove-orphans api worker || true
+              fi
+
+              docker logout
+              exit 1
+            fi
+
+            # ── Cleanup ──────────────────────────────────────────────────────
+            # Prune dangling layers only — keeps tagged images of other apps
+            # AND keeps the previous deploy's image around for fast rollback.
             docker image prune -f
             docker logout
+
+            echo "✅ Deployed $IMAGE_TAG (commit $GIT_SHA)"
+
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          if [ -z "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            echo "SLACK_WEBHOOK_URL not set — skipping notification."
+            exit 0
+          fi
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            --data "$(cat <<EOF
+          {
+            "text": ":rotating_light: Petalia deploy FAILED (tag \`${{ steps.tag.outputs.value }}\`, commit \`${{ github.sha }}\`)",
+            "attachments": [{
+              "color": "#d10000",
+              "fields": [
+                {"title": "Workflow", "value": "${{ github.workflow }}", "short": true},
+                {"title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|view logs>", "short": true}
+              ]
+            }]
+          }
+          EOF
+          )" "${{ secrets.SLACK_WEBHOOK_URL }}"

@@ -1,14 +1,20 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgis/postgis:16-3.4-alpine
+    image: postgis/postgis:16-3.4
+    container_name: petalia-farms-os-api-postgres
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER:-petalia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-petalia_farm_os_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-petalia_farm_os}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-petalia}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -16,50 +22,70 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: >
-      redis-server
-      --requirepass ${REDIS_PASSWORD}
-      --appendonly yes
+    container_name: petalia-farms-os-api-redis
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    command: redis-server --appendonly yes
+    restart: always
+
+  minio:
+    image: minio/minio:latest
+    container_name: petalia-farms-os-api-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: minio server /data --console-address ":9001"
     restart: always
 
   api:
-    image: ${DOCKERHUB_USERNAME}/petalia-farm-os-api:${IMAGE_TAG:-latest}
-    env_file: .env.development
+    image: ${DOCKERHUB_USERNAME}/backend:${IMAGE_TAG:-latest}
+    container_name: petalia-farms-os-api-api
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-petalia}:${POSTGRES_PASSWORD:-Petalia2O25}@postgres:5432/${POSTGRES_DB:-petalia_farm_os}
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
     ports:
       - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+        condition: service_started
     restart: always
 
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
+  worker:
+    image: ${DOCKERHUB_USERNAME}/backend:${IMAGE_TAG:-latest}
+    container_name: petalia-farms-os-api-worker
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-petalia}:${POSTGRES_PASSWORD:-Petalia2O25}@postgres:5432/${POSTGRES_DB:-petalia}
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+    command: node dist/worker
     depends_on:
-      api:
+      postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: always
+
 
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
