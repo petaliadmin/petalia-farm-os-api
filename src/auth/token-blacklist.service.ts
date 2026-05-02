@@ -37,7 +37,10 @@ export class TokenBlacklistService {
    * Returns true when the token (issued at `iatSec` epoch seconds) was
    * revoked after issue. Used by JwtStrategy.validate().
    */
-  async isRevoked(userId: string, iatSec: number | undefined): Promise<boolean> {
+  async isRevoked(
+    userId: string,
+    iatSec: number | undefined,
+  ): Promise<boolean> {
     if (!iatSec) return false;
     const revokedAtMs = await this.cache.get<number>(this.key(userId));
     if (!revokedAtMs) return false;

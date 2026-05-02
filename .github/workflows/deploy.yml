@@ -25,7 +25,7 @@ jobs:
   deploy:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     environment:
       name: staging
@@ -41,7 +41,7 @@ jobs:
           if [ -n "${{ inputs.image_tag }}" ]; then
             echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ github.event.workflow_run.head_sha }}" ]; then
-            echo "value=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "value=sha-${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "value=latest" >> "$GITHUB_OUTPUT"
           fi
@@ -62,19 +62,19 @@ jobs:
           [ -z "$EC2_SSH_KEY" ]        && missing+=("EC2_SSH_KEY")
           if [ ${#missing[@]} -ne 0 ]; then
             echo "::error::Missing secrets in environment 'staging': ${missing[*]}"
-            echo "Add them in Settings → Environments → staging → Add secret."
             exit 1
           fi
           echo "All deployment secrets present."
 
-      - name: Copy compose file to EC2
+      - name: Copy compose + init scripts to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.deploy.yml"
+          source: "docker-compose.deploy.yml,scripts/init-db.sql"
           target: "/home/${{ secrets.EC2_USER }}/petalia-farm-os"
+          overwrite: true
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -87,7 +87,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 10m
+          command_timeout: 15m
           envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,GIT_SHA
           script: |
             set -euo pipefail
@@ -100,49 +100,52 @@ jobs:
             # ── Preflight ─────────────────────────────────────────────────────
             if [ ! -f .env.production ]; then
               echo "::error::Missing $APP_DIR/.env.production on the EC2 host."
-              echo "Create it once manually with your DB/Redis/JWT/MinIO secrets."
+              echo "Create it once manually with DB/Redis/JWT/MinIO/Dockerhub secrets."
               exit 1
             fi
 
-            # docker compose substitutes ${VARS} at YAML parse time. Export them
-            # so the image reference resolves before .env.production is read.
+            for var in POSTGRES_PASSWORD JWT_SECRET MINIO_ROOT_PASSWORD; do
+              if ! grep -q "^${var}=" .env.production; then
+                echo "::error::.env.production is missing required variable: $var"
+                exit 1
+              fi
+            done
+
+            # docker compose substitutes ${VARS} at YAML parse time, BEFORE
+            # env_file is read. Export the username + tag so the image reference
+            # `${DOCKERHUB_USERNAME}/petalia-farm-os-api:${IMAGE_TAG}` resolves.
             export DOCKERHUB_USERNAME
             export IMAGE_TAG="${IMAGE_TAG:-latest}"
             echo "Deploying tag: $IMAGE_TAG"
 
-            # ── Login ─────────────────────────────────────────────────────────
+            # ── DockerHub login ───────────────────────────────────────────────
             echo "$DOCKERHUB_TOKEN" | docker login \
               -u "$DOCKERHUB_USERNAME" \
               --password-stdin
 
             # ── Capture current state for rollback ───────────────────────────
             PREV_TAG=$(docker inspect --format='{{ index .Config.Labels "deploy.tag" }}' \
-              petalia-farms-os-api-api 2>/dev/null || echo "")
+              petalia-api 2>/dev/null || echo "")
             echo "Previous deployed tag: ${PREV_TAG:-none}"
 
             # ── Pull new images ───────────────────────────────────────────────
-            $COMPOSE pull
+            $COMPOSE pull api worker
 
             # ── Run TypeORM migrations BEFORE swapping containers ────────────
-            # Use a one-shot api container (no port binding) to avoid clashes.
             echo "Running migrations..."
-            $COMPOSE run --rm --no-deps api npm run migration:run || {
-              echo "::error::Migration failed — aborting deploy, current containers untouched."
+            if ! $COMPOSE run --rm --no-deps -e NODE_ENV=production api npm run migration:run; then
+              echo "::error::Migration failed — aborting deploy. Current containers untouched."
+              docker logout
               exit 1
-            }
+            fi
 
-            # ── Roll out (zero-downtime where Compose can) ───────────────────
+            # ── Roll out ──────────────────────────────────────────────────────
             $COMPOSE up -d --remove-orphans
 
-            # Tag the running container so the next deploy can roll back to it
-            docker update --restart=always petalia-farms-os-api-api >/dev/null 2>&1 || true
-            docker container update petalia-farms-os-api-api 2>/dev/null || true
-            # (Compose labels are set via the compose file; commit-sha is in IMAGE_TAG itself.)
-
-            # ── Health check (60s deadline) ──────────────────────────────────
+            # ── Health check (90s deadline, accounts for cold start) ─────────
             echo "Waiting for /api/health to return 200..."
             ok=0
-            for i in $(seq 1 30); do
+            for i in $(seq 1 45); do
               status=$(curl -fsS -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "000")
               if [ "$status" = "200" ]; then
                 echo "Health OK after ${i}x2s"
@@ -154,8 +157,10 @@ jobs:
 
             if [ "$ok" -ne 1 ]; then
               echo "::error::Health check failed for tag $IMAGE_TAG"
-              echo "Last 50 lines of api container logs:"
-              docker logs --tail 50 petalia-farms-os-api-api || true
+              echo "── api logs (last 80 lines) ──"
+              docker logs --tail 80 petalia-api 2>&1 || true
+              echo "── worker logs (last 40 lines) ──"
+              docker logs --tail 40 petalia-worker 2>&1 || true
 
               if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
                 echo "Rolling back to previous tag: $PREV_TAG"
@@ -168,8 +173,8 @@ jobs:
             fi
 
             # ── Cleanup ──────────────────────────────────────────────────────
-            # Prune dangling layers only — keeps tagged images of other apps
-            # AND keeps the previous deploy's image around for fast rollback.
+            # Prune dangling layers only — keep tagged images of other apps
+            # AND the previous deploy's image (for fast rollback).
             docker image prune -f
             docker logout
 

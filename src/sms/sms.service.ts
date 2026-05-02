@@ -91,7 +91,9 @@ export class SmsService {
         response?: { status?: number; data?: unknown };
       };
       const detail = error.response?.data ?? error.message;
-      this.logger.error(`Orange SMS failed for ${phone}: ${JSON.stringify(detail)}`);
+      this.logger.error(
+        `Orange SMS failed for ${phone}: ${JSON.stringify(detail)}`,
+      );
       return {
         delivered: false,
         provider: "orange",

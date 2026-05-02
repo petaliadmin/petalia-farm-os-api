@@ -1,20 +1,54 @@
-version: '3.8'
+# Production / staging stack for Petalia Farm OS API.
+#
+# Image substitution rules (read at YAML parse time):
+#   ${DOCKERHUB_USERNAME}  must be exported in the shell that runs `docker compose`
+#   ${IMAGE_TAG}           defaults to `latest`, set to commit SHA by deploy.yml
+#
+# Local manual run:
+#   set -a && source .env.production && set +a
+#   docker compose --env-file .env.production -f docker-compose.deploy.yml up -d
+
+x-app-base: &app-base
+  image: ${DOCKERHUB_USERNAME}/petalia-farm-os-api:${IMAGE_TAG:-latest}
+  restart: always
+  labels:
+    deploy.tag: ${IMAGE_TAG:-latest}
+  env_file: .env.production
+  environment:
+    NODE_ENV: ${NODE_ENV:-production}
+    # Database — names match what NestJS app.module.ts reads
+    DB_HOST: postgres
+    DB_PORT: "5432"
+    DB_USER: ${POSTGRES_USER:-petalia}
+    DB_PASSWORD: ${POSTGRES_PASSWORD}
+    DB_NAME: ${POSTGRES_DB:-petalia}
+    # Redis
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
 
 services:
   postgres:
     image: postgis/postgis:16-3.4
-    container_name: petalia-farms-os-api-postgres
+    container_name: petalia-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-petalia}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-petalia_farm_os_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-petalia_farm_os}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-petalia}
+    # Bind to 127.0.0.1 — never expose Postgres to the public internet.
+    # SSH-tunnel from your laptop if you need direct access.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-petalia}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-petalia} -d ${POSTGRES_DB:-petalia}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,68 +56,67 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: petalia-farms-os-api-redis
+    container_name: petalia-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: >
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+               redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+             else
+               redis-server --appendonly yes;
+             fi'
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - 'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi'
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
   minio:
     image: minio/minio:latest
-    container_name: petalia-farms-os-api-minio
+    container_name: petalia-minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # API + console kept private; reverse-proxy via nginx if you need them public.
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
     command: minio server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9000/minio/health/live || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: always
 
   api:
-    image: ${DOCKERHUB_USERNAME}/backend:${IMAGE_TAG:-latest}
-    container_name: petalia-farms-os-api-api
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-petalia}:${POSTGRES_PASSWORD:-Petalia2O25}@postgres:5432/${POSTGRES_DB:-petalia_farm_os}
-      REDIS_URL: redis://redis:6379
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    <<: *app-base
+    container_name: petalia-api
+    command: ["node", "dist/main.js"]
     ports:
       - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
 
   worker:
-    image: ${DOCKERHUB_USERNAME}/backend:${IMAGE_TAG:-latest}
-    container_name: petalia-farms-os-api-worker
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-petalia}:${POSTGRES_PASSWORD:-Petalia2O25}@postgres:5432/${POSTGRES_DB:-petalia}
-      REDIS_URL: redis://redis:6379
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
-    command: node dist/worker
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    restart: always
-
+    <<: *app-base
+    container_name: petalia-worker
+    command: ["node", "dist/worker.js"]
+    # No port binding — background process
 
 volumes:
   postgres_data:
