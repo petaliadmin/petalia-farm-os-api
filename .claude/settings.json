@@ -6,6 +6,9 @@
       "Bash(xxd src/common/interfaces/authenticated-user.interface.ts)",
       "Bash(xxd src/auth/auth.types.ts)",
       "Bash(xargs grep *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\a844699\\.claude\\projects\\c--Developement-petalia-farm-os-api\\memory"
     ]
   }
 }

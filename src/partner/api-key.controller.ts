@@ -19,6 +19,7 @@ import { Roles } from "../auth/decorators/roles.decorator";
 import { TenantId } from "../common/decorators/tenant-id.decorator";
 import { ApiKeyService } from "./api-key.service";
 import { ApiKeyScope } from "./entities/api-key.entity";
+import { Audit } from "../audit/decorators/audit.decorator";
 
 class CreateApiKeyDto {
   partenaireNom: string;
@@ -43,6 +44,11 @@ export class ApiKeyController {
   })
   @ApiCreatedResponse({
     description: "rawKey à transmettre au partenaire (non récupérable ensuite)",
+  })
+  @Audit({
+    action: "partner.apikey.create",
+    resource: "api_key",
+    severity: "warning",
   })
   async create(
     @Body() body: CreateApiKeyDto,
@@ -83,6 +89,11 @@ export class ApiKeyController {
   @Delete(":id")
   @Roles("admin", "directeur")
   @ApiOperation({ summary: "Révoque immédiatement une clé API" })
+  @Audit({
+    action: "partner.apikey.revoke",
+    resource: "api_key",
+    severity: "warning",
+  })
   async revoke(@Param("id") id: string, @TenantId() tenantId: string | null) {
     if (!tenantId) throw new Error("Organisation requise");
     await this.service.revoke(id, tenantId);

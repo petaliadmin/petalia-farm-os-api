@@ -57,6 +57,7 @@ jobs:
           envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
 
           script: |
+            set -e
             mkdir -p ~/petalia-farm-os
             cd ~/petalia-farm-os
 
@@ -64,10 +65,15 @@ jobs:
               -u "$DOCKERHUB_USERNAME" \
               --password-stdin
 
-            export IMAGE_TAG=${IMAGE_TAG:-latest}
+            # docker compose substitutes ${VARS} at YAML parse time, BEFORE
+            # env_file is read. Export them explicitly so the image reference
+            # `${DOCKERHUB_USERNAME}/petalia-farm-os-api:${IMAGE_TAG}` resolves.
+            export DOCKERHUB_USERNAME
+            export IMAGE_TAG="${IMAGE_TAG:-latest}"
 
-            docker compose -f docker-compose.deploy.yml pull
-            docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+            docker compose --env-file .env.production -f docker-compose.deploy.yml pull
+            docker compose --env-file .env.production -f docker-compose.deploy.yml up -d --remove-orphans
 
-            docker image prune -af
+            # Prune dangling images only (keeps tagged images of other apps on the host)
+            docker image prune -f
             docker logout

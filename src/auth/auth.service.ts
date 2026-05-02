@@ -19,6 +19,8 @@ import {
   RefreshDto,
   ChangePasswordDto,
 } from "./dto/auth.dto";
+import { TokenBlacklistService } from "./token-blacklist.service";
+import { SmsService } from "../sms/sms.service";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -30,6 +32,8 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private tokenBlacklist: TokenBlacklistService,
+    private sms: SmsService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -74,8 +78,8 @@ export class AuthService {
     };
   }
 
-  async logout(_userId: string): Promise<void> {
-    // JWT blacklist via Redis can be added here (audit finding M6)
+  async logout(userId: string): Promise<void> {
+    await this.tokenBlacklist.revokeAllForUser(userId);
   }
 
   async refresh(
@@ -123,6 +127,9 @@ export class AuthService {
       passwordHash: newPasswordHash,
     } as UpdateUserDto);
 
+    // Force re-login on every device when the password changes
+    await this.tokenBlacklist.revokeAllForUser(userId);
+
     return { success: true };
   }
 
@@ -151,9 +158,18 @@ export class AuthService {
     const token = randomBytes(32).toString("hex");
     await this.cacheManager.set(`pwd_reset:${token}`, user.id, RESET_TTL_MS);
 
-    // TODO Sprint 3: Send reset link via Orange SMS or SendGrid email
-    // In development, log the token:
-    if (this.configService.get("NODE_ENV") !== "production") {
+    if (user.phone) {
+      const baseUrl = this.configService.get<string>(
+        "APP_PUBLIC_URL",
+        "https://app.petalia.farm",
+      );
+      const link = `${baseUrl}/reset-password?token=${token}`;
+      await this.sms.send(
+        user.phone,
+        `Petalia : Réinitialisation de mot de passe. Lien valide 1h : ${link}`,
+      );
+    } else if (this.configService.get("NODE_ENV") !== "production") {
+      // Without a phone we have no delivery channel yet (email pending)
       console.log(`[DEV] Reset token for ${email}: ${token}`);
     }
 
@@ -191,8 +207,15 @@ export class AuthService {
     const hash = await bcrypt.hash(code, 8);
     await this.cacheManager.set(`otp:${phone}`, hash, OTP_TTL_MS);
 
-    // TODO Sprint 3: Send via Orange SMS API
-    if (this.configService.get("NODE_ENV") !== "production") {
+    await this.sms.send(
+      phone,
+      `Petalia : Votre code de connexion est ${code}. Valable 10 min. Ne le partagez jamais.`,
+    );
+
+    if (
+      this.configService.get("NODE_ENV") !== "production" &&
+      !this.sms.isConfigured()
+    ) {
       console.log(`[DEV] OTP for ${phone}: ${code}`);
     }
 

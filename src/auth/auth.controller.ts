@@ -22,6 +22,7 @@ import {
   OtpVerifyDto,
 } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { Audit } from "../audit/decorators/audit.decorator";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -31,6 +32,7 @@ export class AuthController {
   @Post("login")
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: "Connexion email/password — retourne JWT" })
+  @Audit({ action: "auth.login", resource: "session", severity: "info" })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
@@ -38,6 +40,7 @@ export class AuthController {
   @Post("logout")
   @SkipThrottle()
   @ApiOperation({ summary: "Déconnexion" })
+  @Audit({ action: "auth.logout", resource: "session", severity: "info" })
   async logout(@Request() req: Request & { user: AuthenticatedUser }) {
     await this.authService.logout(req.user.sub);
     return {};
@@ -78,6 +81,11 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiBearerAuth()
   @ApiOperation({ summary: "Changer le mot de passe" })
+  @Audit({
+    action: "auth.password.change",
+    resource: "user",
+    severity: "warning",
+  })
   async changePassword(
     @Request() req: Request & { user: AuthenticatedUser },
     @Body() changePasswordDto: ChangePasswordDto,
@@ -95,6 +103,11 @@ export class AuthController {
   @Post("reset-password")
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @ApiOperation({ summary: "Réinitialiser le mot de passe avec le token reçu" })
+  @Audit({
+    action: "auth.password.reset",
+    resource: "user",
+    severity: "warning",
+  })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }

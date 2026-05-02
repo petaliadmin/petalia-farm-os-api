@@ -829,17 +829,27 @@ npm install nestjs-pino pino-http
 
 ---
 
-### Sprint 6 — Robustesse & Monitoring (2 semaines) 🟣 — FUTUR
-> **Objectif : SLA 99.5% + alerting temps-réel**
+### Sprint 6 — Robustesse & Monitoring (2 semaines) 🟣 — 2026-05-02
 
-| # | Tâche | Effort | Impact |
-|---|---|---|---|
-| 6.1 | Rate limiting par API key (partenaires) | 1j | HAUTE |
-| 6.2 | Audit log entity + middleware (qui/quand/quoi) | 2j | CRITIQUE pour banques |
-| 6.3 | JWT blacklist implementation (Redis) | 0.5j | MOYENNE |
-| 6.4 | Strict password policy + forgot password réel | 1j | MOYENNE |
-| 6.5 | Database indexes optimization (cible < 100ms p95) | 2j | HAUTE |
-| 6.6 | End-to-end encryption pour sensibles (mot de passe, SMS) | 2j | MOYENNE |
+> **Objectif : SLA 99.5% + alerting temps-réel + compliance bancaire**
+
+| # | Tâche | Effort | Impact | État |
+|---|---|---|---|---|
+| 6.1 | Rate limiting par API key (partenaires) | 1j | HAUTE | ✅ (livré Sprint 4.5 — `quota.guard.ts`) |
+| 6.2 | Audit log entity + middleware (qui/quand/quoi) | 2j | CRITIQUE pour banques | ✅ |
+| 6.3 | JWT blacklist implementation (Redis) | 0.5j | MOYENNE | ✅ |
+| 6.4 | Strict password policy + forgot password réel | 1j | MOYENNE | ✅ |
+| 6.5 | Database indexes optimization (cible < 100ms p95) | 2j | HAUTE | ✅ |
+| 6.6 | End-to-end encryption pour sensibles (mot de passe, SMS) | 2j | MOYENNE | 📋 Différé Sprint 7 (à grouper avec 7.3 encryption at-rest) |
+
+**Livrables Sprint 6 :**
+- `src/audit/` — module immutable avec interceptor + decorator `@Audit({action, resource, severity})`, redaction automatique des secrets, endpoint admin `GET /api/audit-logs`
+- `src/auth/token-blacklist.service.ts` — révocation JWT par user via Redis (logout, change-password)
+- `src/sms/sms.service.ts` — client Orange Developer Cloud avec fallback no-op (dev), normalisation E.164, token cache
+- `forgotPassword` + `sendOtp` — envoi SMS Orange réel quand creds présentes (sinon log dev)
+- DTOs `ChangePasswordDto`/`ResetPasswordDto` — regex strict 10+ caractères avec maj/min/chiffre/spécial
+- Migration `1714694400000-AddPerformanceIndexes` — 14 indexes (visites, recoltes, notifications partial, taches partial, NDVI, parcelles partial, multi-tenant)
+- `@Audit` posé sur : auth (login/logout/change-password/reset-password), billing (subscribe/cancel/payment confirm), partner (apikey create/revoke)
 
 ---
 
@@ -1012,13 +1022,13 @@ IMPACT FAIBLE
 
 ### 🟠 High (pre-production hardening)
 
-| ID | Issue | Module | Effort | Impact |
-|---|---|---|---|---|
-| T6 | Bull workers synchrone (blocks HTTP) | NDVI, WhatsApp | 2j | Async jobs |
-| T7 | No audit log (exigence banque) | All | 2j | Compliance |
-| T8 | Logs non centralisés | Infra | 1d | Debugging prod |
-| T9 | Rate limiting par user only (pas par API key) | Partner API | 1j | Fair use |
-| T10 | No JWT blacklist (logout ineffective) | Auth | 0.5j | Security |
+| ID | Issue | Module | Effort | Impact | État |
+|---|---|---|---|---|---|
+| T6 | Bull workers synchrone (blocks HTTP) | NDVI, WhatsApp | 2j | Async jobs | ✅ Sprint 5.1 |
+| T7 | No audit log (exigence banque) | All | 2j | Compliance | ✅ Sprint 6.2 |
+| T8 | Logs non centralisés | Infra | 1d | Debugging prod | ✅ Sprint 5.2 |
+| T9 | Rate limiting par user only (pas par API key) | Partner API | 1j | Fair use | ✅ Sprint 4.5 |
+| T10 | No JWT blacklist (logout ineffective) | Auth | 0.5j | Security | ✅ Sprint 6.3 |
 
 ### 🟡 Medium (optimize 2H 2026)
 

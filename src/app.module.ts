@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CacheModule } from "@nestjs/cache-manager";
@@ -44,6 +44,9 @@ import { PartnerModule } from "./partner/partner.module";
 import { BillingModule } from "./billing/billing.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { AlertingModule } from "./common/alerting/alerting.module";
+import { AuditModule } from "./audit/audit.module";
+import { AuditInterceptor } from "./audit/audit.interceptor";
+import { SmsModule } from "./sms/sms.module";
 
 @Module({
   imports: [
@@ -136,10 +139,13 @@ import { AlertingModule } from "./common/alerting/alerting.module";
     BillingModule,
     AlertingModule,
     MetricsModule,
+    AuditModule,
+    SmsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: TenantScopeGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}

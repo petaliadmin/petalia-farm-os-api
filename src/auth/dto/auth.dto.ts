@@ -16,6 +16,18 @@ export interface JwtPayload {
   organisationId: string | null;
 }
 
+/**
+ * Production password policy:
+ *   - 10+ characters
+ *   - At least one uppercase, one lowercase, one digit, one special char
+ * Login DTO keeps the legacy MinLength(8) so existing accounts can still
+ * authenticate; new/changed passwords are validated against the strict regex.
+ */
+export const STRONG_PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
+export const STRONG_PASSWORD_MESSAGE =
+  "Le mot de passe doit contenir au moins 10 caractères dont 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial";
+
 export class LoginDto {
   @ApiProperty({ example: "user@example.com" })
   @IsEmail()
@@ -52,12 +64,12 @@ export class RefreshDto {
 export class ChangePasswordDto {
   @ApiProperty()
   @IsString()
-  @MinLength(8)
+  @IsNotEmpty()
   currentPassword: string;
 
-  @ApiProperty()
+  @ApiProperty({ minLength: 10 })
   @IsString()
-  @MinLength(8)
+  @Matches(STRONG_PASSWORD_REGEX, { message: STRONG_PASSWORD_MESSAGE })
   newPassword: string;
 }
 
@@ -96,9 +108,9 @@ export class ResetPasswordDto {
   @IsNotEmpty()
   token: string;
 
-  @ApiProperty()
+  @ApiProperty({ minLength: 10 })
   @IsString()
-  @MinLength(8)
+  @Matches(STRONG_PASSWORD_REGEX, { message: STRONG_PASSWORD_MESSAGE })
   newPassword: string;
 }
 

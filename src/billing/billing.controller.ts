@@ -7,6 +7,7 @@ import { TenantId } from "../common/decorators/tenant-id.decorator";
 import { BillingService } from "./billing.service";
 import { PlanCode } from "./entities/plan.entity";
 import { PaymentProviderName } from "./entities/payment-intent.entity";
+import { Audit } from "../audit/decorators/audit.decorator";
 
 class SubscribeDto {
   planCode: PlanCode;
@@ -50,6 +51,11 @@ export class BillingController {
     summary:
       "Souscrire à un plan (gratuit = active, payant = pending_payment + intent)",
   })
+  @Audit({
+    action: "billing.subscription.create",
+    resource: "subscription",
+    severity: "warning",
+  })
   subscribe(@Body() body: SubscribeDto, @TenantId() tenantId: string | null) {
     if (!tenantId) {
       throw new Error("Organisation requise");
@@ -66,6 +72,11 @@ export class BillingController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin", "directeur")
   @ApiBearerAuth()
+  @Audit({
+    action: "billing.subscription.cancel",
+    resource: "subscription",
+    severity: "warning",
+  })
   cancel(@TenantId() tenantId: string | null) {
     if (!tenantId) throw new Error("Organisation requise");
     return this.billing.cancelSubscription(tenantId);
@@ -77,6 +88,11 @@ export class BillingController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: "Confirme manuellement un paiement (admin Petalia uniquement)",
+  })
+  @Audit({
+    action: "billing.payment.confirm",
+    resource: "payment_intent",
+    severity: "critical",
   })
   confirm(@Param("id") id: string, @Body() body: ConfirmDto) {
     return this.billing.confirmPayment(id, body.notes);
