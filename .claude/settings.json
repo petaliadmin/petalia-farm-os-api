@@ -4,7 +4,8 @@
       "Bash(gh secret *)",
       "Bash(npm ls *)",
       "Bash(xxd src/common/interfaces/authenticated-user.interface.ts)",
-      "Bash(xxd src/auth/auth.types.ts)"
+      "Bash(xxd src/auth/auth.types.ts)",
+      "Bash(xargs grep *)"
     ]
   }
 }
