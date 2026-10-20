@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Logger, Module } from "@nestjs/common";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -7,7 +7,8 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { BullModule } from "@nestjs/bull";
 import { LoggerModule } from "nestjs-pino";
-import { redisStore } from "cache-manager-redis-yet";
+import { redisInsStore } from "cache-manager-redis-yet";
+import { createClient, RedisClientType } from "redis";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 import { pinoConfig } from "./common/config/logger.config";
 import { redisConnection } from "./common/config/redis.config";
@@ -65,6 +66,8 @@ import { ServerlessModule } from "./serverless/serverless.module";
       useFactory: (config: ConfigService) => ({
         ...buildDataSourceOptions((key) => config.get<string>(key)),
         autoLoadEntities: true,
+        // A serverless invocation cannot wait through 10 retries (default).
+        ...(isServerless() ? { retryAttempts: 2, retryDelay: 1000 } : {}),
       }),
     }),
 
@@ -75,12 +78,27 @@ import { ServerlessModule } from "./serverless/serverless.module";
         const { host, port, username, password, tls } = redisConnection((key) =>
           config.get<string>(key),
         );
-        return {
-          store: redisStore,
-          socket: { host, port, tls: !!tls },
+        const reconnectStrategy = (retries: number) =>
+          Math.min(retries * 200, 5000);
+        const client = createClient({
+          socket: tls
+            ? { host, port, tls: true, servername: host, reconnectStrategy }
+            : { host, port, reconnectStrategy },
           username,
           password,
-          ttl: 5 * 60 * 1000,
+          // Keeps managed Redis (Upstash) from dropping idle connections.
+          pingInterval: 60_000,
+        });
+        // Without a listener node-redis turns a dropped socket into an
+        // uncaught exception that kills the process; it reconnects by itself.
+        client.on("error", (err: Error) =>
+          new Logger("RedisCache").warn(`Redis cache: ${err.message}`),
+        );
+        await client.connect();
+        const ttl = 5 * 60 * 1000;
+        return {
+          store: redisInsStore(client as RedisClientType, { ttl }),
+          ttl,
         };
       },
     }),
