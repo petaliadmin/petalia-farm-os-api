@@ -1,7 +1,8 @@
 name: Deploy Petalia API
 
 # AWS EC2 deployment. Repository variable DEPLOY_TARGET picks the platform:
-# unset or "aws" → this workflow, "vercel" → deploy-vercel.yml, "both" → both.
+# unset or "aws" → this workflow, "vercel" → Vercel (supabase-migrate.yml +
+# vercel-background.yml), "both" → both.
 
 on:
   workflow_run:

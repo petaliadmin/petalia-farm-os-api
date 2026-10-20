@@ -6,13 +6,15 @@ L'API peut tourner sur **Vercel** (fonctions serverless) avec **Supabase** (Post
 
 Variable de dépôt `DEPLOY_TARGET` (Settings → Secrets and variables → Actions → Variables) :
 
-| Valeur | CI : image Docker | Déploiement AWS (`deploy.yml`) | Déploiement Vercel (`deploy-vercel.yml`) |
+| Valeur | CI : image Docker | Déploiement AWS (`deploy.yml`) | Vercel (`supabase-migrate.yml`, `vercel-background.yml`) |
 |---|---|---|---|
 | *(absente)* ou `aws` | ✅ | ✅ | — |
-| `vercel` | — | — | ✅ |
-| `both` | ✅ | ✅ | ✅ |
+| `vercel` | — | — | migrations Supabase + tâches de fond |
+| `both` | ✅ | ✅ | migrations Supabase + tâches de fond |
 
 Revenir sur AWS = remettre `DEPLOY_TARGET=aws` (ou la supprimer).
+
+> **Phase de test : offre Vercel gratuite (Hobby).** Vercel déploie lui-même via son intégration Git. Les seuls crons Vercel sont quotidiens (autorisés en Hobby) ; le travail fréquent est déclenché par GitHub Actions (`vercel-background.yml`, toutes les 10 min). Tout reste dans les quotas gratuits Vercel, Supabase, Upstash et GitHub.
 
 ## Ce qui change selon le runtime
 
@@ -21,12 +23,13 @@ Le mode est détecté automatiquement (`VERCEL=1`), ou forcé avec `RUNTIME_MODE
 | | AWS (server) | Vercel (serverless) |
 |---|---|---|
 | HTTP | `node dist/main.js` | `api/index.ts` → `dist/main.js` (même build `nest build`) |
-| Files Bull (NDVI, PDF, WhatsApp, webhooks) | workers en continu | vidées par Vercel Cron chaque minute : `GET /api/internal/queues/drain` |
-| `@Cron` (alertes, purges) | `ScheduleModule` en process | Vercel Cron → `GET /api/internal/cron/<Classe.méthode>` (planning dans `vercel.json`) |
+| Files Bull (NDVI, PDF, WhatsApp, webhooks) | workers en continu | vidées toutes les 10 min par GitHub Actions : `GET /api/internal/queues/drain` |
+| `@Cron` alertes | `ScheduleModule` en process | GitHub Actions → `GET /api/internal/cron/<Classe.méthode>` (horaire / 6 h) |
+| `@Cron` purges | `ScheduleModule` en process | Vercel Cron quotidien (`vercel.json`) |
 | Base | `DB_*` | `DATABASE_URL` (+ `DATABASE_MIGRATION_URL`) |
 | Redis | `REDIS_HOST/PORT/PASSWORD` | `REDIS_URL` (`rediss://`) |
 
-Les routes `/api/internal/*` n'existent qu'en serverless et exigent `Authorization: Bearer $CRON_SECRET` (envoyé automatiquement par Vercel Cron). `GET /api/internal/cron` liste les jobs disponibles.
+Les routes `/api/internal/*` n'existent qu'en serverless et exigent `Authorization: Bearer $CRON_SECRET` (envoyé automatiquement par Vercel Cron, et par le workflow GitHub). `GET /api/internal/cron` liste les jobs disponibles.
 
 ## Mise en place
 
@@ -42,11 +45,11 @@ Les routes `/api/internal/*` n'existent qu'en serverless et exigent `Authorizati
 ### 2. Upstash Redis
 
 Créer une base Redis (même région), copier l'URL `rediss://default:…@….upstash.io:6379` → `REDIS_URL`.
-Le vidage des files chaque minute consomme quelques dizaines de milliers de commandes par jour : prévoir l'offre pay-as-you-go plutôt que le quota gratuit.
+Avec un vidage toutes les 10 min, la consommation reste de l'ordre de quelques milliers de commandes par jour, dans le quota gratuit.
 
 ### 3. Vercel
 
-1. Importer le dépôt (Framework : *Other*). `vercel.json` gère le build (`vercel-build` → `nest build`), le routage et les crons.
+1. Avec votre compte : *Add New → Project*, importer `petaliadmin/petalia-farm-os-api` (Framework : *Other*, laisser build/output vides). `vercel.json` gère le build (`vercel-build` → `nest build`), le routage et les 2 crons quotidiens. *Production Branch* : `main` (ou la branche de test pendant la phase d'essai).
 2. Variables d'environnement (Production) :
 
    | Variable | Valeur |
@@ -60,14 +63,18 @@ Le vidage des files chaque minute consomme quelques dizaines de milliers de comm
    | `METRICS_TOKEN` | obligatoire pour lire `/api/metrics` (pas d'accès « réseau privé » sur Vercel) |
    | Intégrations | `SENTINEL_HUB_*`, `OPENWEATHERMAP_API_KEY`, `ORANGE_*`, `WHATSAPP_*`, `ANTHROPIC_API_KEY`, `FIREBASE_*`, `SLACK_WEBHOOK_URL`… (mêmes valeurs qu'AWS) |
 
-3. **Plan Pro requis** : en Hobby, Vercel n'accepte que des crons quotidiens et refuse le déploiement avec le planning `* * * * *`. Sans Pro, retirer les crons de `vercel.json` et appeler les mêmes URL depuis un planificateur externe avec l'en-tête `Authorization`.
+3. Déployer, puis noter l'URL de production (`https://<projet>.vercel.app`). Tester : `GET /api/health` doit répondre `"status": "ok"`.
+4. Passage en Pro plus tard (optionnel) : remettre des crons fréquents dans `vercel.json` (ex. `* * * * *` sur `/api/internal/queues/drain`) et désactiver `vercel-background.yml`.
 
 ### 4. GitHub (environnement `production`)
 
-Secrets : `SUPABASE_DB_MIGRATION_URL`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (ces deux derniers dans `.vercel/project.json` après `vercel link`).
-Puis `DEPLOY_TARGET=vercel`.
+Secrets : `SUPABASE_DB_MIGRATION_URL`, `VERCEL_API_URL` (l'URL de l'étape 3), `CRON_SECRET` (même valeur que sur Vercel).
+Variable de dépôt : `DEPLOY_TARGET=vercel`.
 
-À chaque push sur `main` : CI → migrations Supabase → déploiement Vercel production. Les déploiements Git automatiques de `main` sont désactivés dans `vercel.json` pour que le code ne passe jamais en ligne avant son schéma ; les branches gardent leurs previews.
+- `supabase-migrate.yml` : après chaque CI verte sur `main` (ou à la main via *Run workflow*), applique les migrations. Pour le tout premier déploiement, le lancer **avant** de déployer sur Vercel.
+- `vercel-background.yml` : toutes les 10 min, vide les files ; alertes météo chaque heure, NDVI et échéances toutes les 6 h. GitHub n'exécute les plannings que depuis la branche par défaut, avec quelques minutes de retard possibles.
+
+Vercel et les migrations partent en parallèle après un push : si une version ajoute une migration, la lancer d'abord (*Run workflow*), puis pousser.
 
 ⚠️ Les previews utilisent les variables *Preview* de Vercel : leur donner une base Supabase distincte (branche Supabase ou projet de staging), jamais la base de production.
 
@@ -105,7 +112,8 @@ Faire un essai sur un projet Supabase de test, comparer les comptages (`select c
 ## Limites de Vercel à connaître
 
 - **Corps de requête : 4,5 Mo maximum.** L'upload photo du diagnostic accepte 8 Mo : les photos de plus de 4,5 Mo seront rejetées par Vercel (compresser côté mobile, ou upload direct vers Supabase Storage).
-- **Durée : 60 s par fonction** (`maxDuration`). Les jobs plus longs (gros PDF, NDVI) restent dans la file et sont repris au vidage suivant ; chaque vidage s'arrête après `QUEUE_DRAIN_BUDGET_MS` (45 s).
-- **Délai des tâches de fond** : jusqu'à une minute entre la mise en file et le traitement.
+- **Durée : 60 s par fonction** (`maxDuration`, maximum Hobby). Les jobs plus longs (gros PDF, NDVI) restent dans la file et sont repris au vidage suivant ; chaque vidage s'arrête après `QUEUE_DRAIN_BUDGET_MS` (45 s).
+- **Délai des tâches de fond** : environ 10 min entre la mise en file et le traitement (NDVI, PDF, WhatsApp, webhooks partenaires). Pour un test immédiat : *Run workflow* sur `vercel-background.yml`, ou `curl -H "Authorization: Bearer $CRON_SECRET" https://<projet>.vercel.app/api/internal/queues/drain`.
+- **Supabase gratuit** : le projet se met en pause après une semaine sans activité (le réactiver depuis le dashboard), 500 Mo de base.
 - **Rate limiting** (`@nestjs/throttler`) : compteur en mémoire par instance, donc approximatif sur Vercel. Les quotas des clés partenaires, eux, sont dans Redis et restent exacts.
 - **Système de fichiers** en lecture seule (sauf `/tmp`) : rien dans le code n'écrit sur disque aujourd'hui.

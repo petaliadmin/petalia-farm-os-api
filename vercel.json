@@ -6,7 +6,9 @@
       "src": "api/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**"],
+        "includeFiles": [
+          "dist/**"
+        ],
         "maxDuration": 60
       }
     }
@@ -18,16 +20,13 @@
     }
   ],
   "crons": [
-    { "path": "/api/internal/queues/drain", "schedule": "* * * * *" },
-    { "path": "/api/internal/cron/AlertesService.scanMeteoExtreme", "schedule": "0 * * * *" },
-    { "path": "/api/internal/cron/AlertesService.scanNdviStress", "schedule": "10 */6 * * *" },
-    { "path": "/api/internal/cron/AlertesService.scanEcheances", "schedule": "20 */6 * * *" },
-    { "path": "/api/internal/cron/IdempotencyService.purgeExpired", "schedule": "30 * * * *" },
-    { "path": "/api/internal/cron/NotificationsService.purgeOldNotifications", "schedule": "0 0 * * *" }
-  ],
-  "git": {
-    "deploymentEnabled": {
-      "main": false
+    {
+      "path": "/api/internal/cron/NotificationsService.purgeOldNotifications",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/internal/cron/IdempotencyService.purgeExpired",
+      "schedule": "0 3 * * *"
     }
-  }
+  ]
 }

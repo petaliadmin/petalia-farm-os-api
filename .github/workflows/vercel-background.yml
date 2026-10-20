@@ -1,0 +1,64 @@
+name: Vercel background jobs
+
+# Vercel Hobby only runs cron jobs once a day, so the frequent background
+# work (Bull queues, alert scans) is triggered from here instead.
+# GitHub runs schedules from the default branch only, with a few minutes of
+# jitter — good enough for the test phase.
+#
+# Runs when repository variable DEPLOY_TARGET is "vercel" or "both".
+# Secrets (environment "production"):
+#   VERCEL_API_URL  e.g. https://petalia-farm-os-api.vercel.app
+#   CRON_SECRET     same value as the Vercel environment variable
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-background
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    name: Trigger background work
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    if: vars.DEPLOY_TARGET == 'vercel' || vars.DEPLOY_TARGET == 'both'
+
+    steps:
+      - name: Call internal endpoints
+        env:
+          API: ${{ secrets.VERCEL_API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$API" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Secrets VERCEL_API_URL and CRON_SECRET are required in environment 'production'."
+            exit 1
+          fi
+
+          call() {
+            echo "→ $1"
+            curl -fsS --max-time 70 -H "Authorization: Bearer $CRON_SECRET" "$API/api/internal/$1"
+            echo
+          }
+
+          minute=$(date -u +%-M)
+          hour=$(date -u +%-H)
+
+          # Every run (~10 min): pending Bull jobs (NDVI, PDF, WhatsApp, webhooks).
+          call queues/drain
+
+          # First run of each hour.
+          if [ "$minute" -lt 10 ]; then
+            call cron/AlertesService.scanMeteoExtreme
+            # Every 6 hours.
+            if [ $((hour % 6)) -eq 0 ]; then
+              call cron/AlertesService.scanNdviStress
+              call cron/AlertesService.scanEcheances
+            fi
+          fi
