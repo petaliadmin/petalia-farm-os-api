@@ -18,15 +18,61 @@ import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { TenantId } from "../common/decorators/tenant-id.decorator";
 import { ApiKeyService } from "./api-key.service";
-import { ApiKeyScope } from "./entities/api-key.entity";
+import {
+  IsArray,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from "class-validator";
+import {
+  ALL_SCOPES,
+  ApiKeyKind,
+  ApiKeyMode,
+  ApiKeyScope,
+} from "./entities/api-key.entity";
 import { Audit } from "../audit/decorators/audit.decorator";
+import { encodeId } from "../public-api/common/ids";
 
 class CreateApiKeyDto {
+  @IsString()
+  @MaxLength(120)
   partenaireNom: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(ALL_SCOPES, { each: true })
   scopes?: ApiKeyScope[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1_000_000)
   quotaPerHour?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100_000_000)
   quotaPerMonth?: number;
+
+  @IsOptional()
+  @IsDateString()
   expiresAt?: string;
+
+  /** "test" keys only see sandbox data. */
+  @IsOptional()
+  @IsIn(["live", "test"])
+  mode?: ApiKeyMode;
+
+  /** "publishable" keys (pk_) only reach open data. */
+  @IsOptional()
+  @IsIn(["secret", "publishable"])
+  kind?: ApiKeyKind;
 }
 
 @ApiTags("Partner B2B (admin)")
@@ -64,12 +110,18 @@ export class ApiKeyController {
       quotaPerHour: body.quotaPerHour,
       quotaPerMonth: body.quotaPerMonth,
       expiresAt: body.expiresAt,
+      mode: body.mode,
+      kind: body.kind,
     });
     return {
       id: apiKey.id,
+      // OAuth2 client_id for POST /api/v1/oauth/token (client_secret = rawKey).
+      clientId: encodeId("api_key", apiKey.id),
       partenaireNom: apiKey.partenaireNom,
       prefix: apiKey.prefix,
       scopes: apiKey.scopes,
+      mode: apiKey.mode,
+      kind: apiKey.kind,
       quotaPerHour: apiKey.quotaPerHour,
       quotaPerMonth: apiKey.quotaPerMonth,
       expiresAt: apiKey.expiresAt,

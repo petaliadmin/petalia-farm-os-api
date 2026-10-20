@@ -13,6 +13,7 @@ import {
 @Index(["organisationId", "statut", "culture"])
 @Index(["technicienId", "statut"])
 @Index(["deleted", "organisationId"])
+@Index(["farmerId"])
 export class Parcelle {
   @PrimaryGeneratedColumn("uuid")
   id: string;
@@ -134,6 +135,20 @@ export class Parcelle {
 
   @Column({ nullable: true })
   equipeId: string;
+
+  /** Public API: owning farmer (identity by phone) and farm. */
+  @Column({ type: "uuid", nullable: true })
+  farmerId: string | null;
+
+  @Column({ type: "uuid", nullable: true })
+  farmId: string | null;
+
+  /** false for sandbox parcels created with sk_test_ keys. */
+  @Column({ default: true })
+  livemode: boolean;
+
+  @Column({ type: "jsonb", default: {} })
+  metadata: Record<string, string>;
 
   @Column({ type: "float", default: 0 })
   healthScore: number;

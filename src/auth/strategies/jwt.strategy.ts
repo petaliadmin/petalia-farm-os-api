@@ -9,6 +9,7 @@ import { TokenBlacklistService } from "../token-blacklist.service";
 
 interface SignedJwtPayload extends JwtPayload {
   iat?: number;
+  aud?: string | string[];
 }
 
 @Injectable()
@@ -26,6 +27,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: SignedJwtPayload): Promise<AuthenticatedUser> {
+    // Public API access tokens carry an audience; they are never user sessions.
+    if (payload.aud) {
+      throw new UnauthorizedException("Token invalide ou expiré");
+    }
     const user = await this.usersService.findById(payload.sub);
     if (!user || !user.actif) {
       throw new UnauthorizedException("Token invalide ou expiré");

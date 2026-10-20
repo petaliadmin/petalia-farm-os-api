@@ -17,6 +17,6 @@ import { QUEUE_NAMES } from "../common/queues";
   ],
   controllers: [WhatsAppController],
   providers: [WhatsAppService, WhatsAppCloudClient, WhatsAppProcessor],
-  exports: [WhatsAppService],
+  exports: [WhatsAppService, WhatsAppCloudClient],
 })
 export class WhatsAppModule {}

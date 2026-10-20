@@ -9,10 +9,20 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
-import { ApiKey, ApiKeyScope, ALL_SCOPES } from "./entities/api-key.entity";
+import {
+  ApiKey,
+  ApiKeyKind,
+  ApiKeyMode,
+  ApiKeyScope,
+  ALL_SCOPES,
+} from "./entities/api-key.entity";
 
-const KEY_PREFIX = "pk_";
-const PREFIX_LEN = 11; // "pk_" + 8 chars
+/** "sk_live_" / "sk_test_" / "pk_live_" / "pk_test_" + 8 chars. */
+const TYPED_KEY_RE = /^(sk|pk)_(live|test)_[A-Za-z0-9_-]{8,}$/;
+const TYPED_PREFIX_LEN = 16;
+/** Keys issued before the public API: "pk_" + 8 chars, used as secrets. */
+const LEGACY_KEY_RE = /^pk_[A-Za-z0-9_-]{8,}$/;
+const LEGACY_PREFIX_LEN = 11;
 
 export interface CreateApiKeyInput {
   organisationId: string;
@@ -21,6 +31,8 @@ export interface CreateApiKeyInput {
   quotaPerHour?: number;
   quotaPerMonth?: number;
   expiresAt?: Date | string;
+  mode?: ApiKeyMode;
+  kind?: ApiKeyKind;
 }
 
 @Injectable()
@@ -39,8 +51,10 @@ export class ApiKeyService {
       }
     }
 
-    const rawKey = this.generateRawKey();
-    const prefix = rawKey.slice(0, PREFIX_LEN);
+    const mode = input.mode ?? "live";
+    const kind = input.kind ?? "secret";
+    const rawKey = this.generateRawKey(mode, kind);
+    const prefix = rawKey.slice(0, TYPED_PREFIX_LEN);
     const keyHash = await bcrypt.hash(rawKey, 10);
 
     const expiresAt = input.expiresAt
@@ -54,6 +68,8 @@ export class ApiKeyService {
         prefix,
         keyHash,
         scopes,
+        mode,
+        kind,
         quotaPerHour: input.quotaPerHour ?? 1000,
         quotaPerMonth: input.quotaPerMonth ?? 50_000,
         active: true,
@@ -86,10 +102,15 @@ export class ApiKeyService {
   async verify(
     rawKey: string,
   ): Promise<{ apiKey: ApiKey; scopes: ApiKeyScope[] }> {
-    if (!rawKey || !rawKey.startsWith(KEY_PREFIX)) {
+    const prefixLen = TYPED_KEY_RE.test(rawKey ?? "")
+      ? TYPED_PREFIX_LEN
+      : LEGACY_KEY_RE.test(rawKey ?? "")
+        ? LEGACY_PREFIX_LEN
+        : 0;
+    if (!prefixLen) {
       throw new UnauthorizedException("API key absente ou format invalide");
     }
-    const prefix = rawKey.slice(0, PREFIX_LEN);
+    const prefix = rawKey.slice(0, prefixLen);
     const candidates = await this.repo
       .createQueryBuilder("k")
       .addSelect("k.keyHash")
@@ -110,6 +131,15 @@ export class ApiKeyService {
     throw new UnauthorizedException("API key invalide");
   }
 
+  /** Active, non-expired key by id — used to validate OAuth access tokens. */
+  async findActive(id: string): Promise<ApiKey | null> {
+    return this.repo
+      .createQueryBuilder("k")
+      .where("k.id = :id AND k.active = true", { id })
+      .andWhere("(k.expiresAt IS NULL OR k.expiresAt > NOW())")
+      .getOne();
+  }
+
   /** Soft-delete dangling keys after expiry — useful for cron later. */
   countExpired(): Promise<number> {
     return this.repo
@@ -118,10 +148,11 @@ export class ApiKeyService {
       .getCount();
   }
 
-  private generateRawKey(): string {
-    // 32 bytes of entropy → 43 chars base64url. Total length ≈ 47 incl prefix.
+  private generateRawKey(mode: ApiKeyMode, kind: ApiKeyKind): string {
+    // 32 bytes of entropy → 43 chars base64url. Total length ≈ 51 incl prefix.
     const buf = crypto.randomBytes(32);
-    return `${KEY_PREFIX}${this.base64url(buf)}`;
+    const type = kind === "publishable" ? "pk" : "sk";
+    return `${type}_${mode}_${this.base64url(buf)}`;
   }
 
   private base64url(buf: Buffer): string {

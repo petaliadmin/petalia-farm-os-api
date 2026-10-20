@@ -29,6 +29,11 @@ export class ApiKeyGuard implements CanActivate {
       (req.headers["x-api-key"] as string | undefined) ??
       this.fromAuthHeader(req.headers.authorization);
     const { apiKey, scopes } = await this.apiKeys.verify(headerKey ?? "");
+    if (apiKey.kind === "publishable") {
+      throw new ForbiddenException(
+        "Les clés publiables (pk_live_/pk_test_) ne donnent pas accès à /partner",
+      );
+    }
 
     const required = this.reflector.getAllAndOverride<ApiKeyScope[]>(
       SCOPES_KEY,
@@ -54,7 +59,7 @@ export class ApiKeyGuard implements CanActivate {
 
   private fromAuthHeader(value: string | undefined): string | undefined {
     if (!value) return undefined;
-    const m = /^Bearer\s+(pk_[A-Za-z0-9_-]+)$/.exec(value);
+    const m = /^Bearer\s+((?:sk|pk)_[A-Za-z0-9_-]+)$/.exec(value);
     return m ? m[1] : undefined;
   }
 }

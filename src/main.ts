@@ -5,6 +5,7 @@ import { ExpressAdapter } from "@nestjs/platform-express";
 import { Logger as PinoLogger } from "nestjs-pino";
 import * as express from "express";
 import { AppModule } from "./app.module";
+import { setupPublicApiDocs } from "./public-api/openapi";
 
 const SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14";
 
@@ -43,6 +44,17 @@ export async function configureApp(app: INestApplication): Promise<void> {
       "X-Device-Key",
       "Accept-Language",
       "Content-Type",
+      "Idempotency-Key",
+      "Petalia-Version",
+      "X-API-Key",
+      "X-Request-Id",
+    ],
+    exposedHeaders: [
+      "Request-Id",
+      "Petalia-Version",
+      "Idempotent-Replayed",
+      "X-RateLimit-Limit-Hour",
+      "X-RateLimit-Remaining-Hour",
     ],
   });
 
@@ -53,6 +65,7 @@ export async function configureApp(app: INestApplication): Promise<void> {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
+  setupPublicApiDocs(app, SWAGGER_CDN);
   SwaggerModule.setup("api/docs", app, document, {
     customCssUrl: `${SWAGGER_CDN}/swagger-ui.css`,
     customJs: [
