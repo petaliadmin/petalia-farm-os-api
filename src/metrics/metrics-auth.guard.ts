@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { isServerless } from "../common/runtime";
 
 interface RequestLike {
   headers: Record<string, string | string[] | undefined>;
@@ -33,7 +34,9 @@ export class MetricsAuthGuard implements CanActivate {
       if (provided && provided === token) return true;
     }
 
-    if (this.isPrivateIp(req.ip)) return true;
+    // Behind Vercel's proxy the socket address is internal for every caller,
+    // so only the token counts there.
+    if (!isServerless() && this.isPrivateIp(req.ip)) return true;
 
     throw new UnauthorizedException("Metrics endpoint requires authentication");
   }

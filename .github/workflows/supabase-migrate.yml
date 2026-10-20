@@ -1,0 +1,65 @@
+name: Supabase migrations
+
+# Runs when repository variable DEPLOY_TARGET is "vercel" or "both".
+# Vercel deploys main itself through its Git integration (Hobby plan, test
+# phase); this workflow applies the pending migrations to Supabase.
+#
+# Secret (environment "staging", shared with the AWS workflows):
+#   SUPABASE_DB_MIGRATION_URL  session pooler connection string (port 5432)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-migrate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Migrate Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    if: >-
+      (vars.DEPLOY_TARGET == 'vercel' || vars.DEPLOY_TARGET == 'both') &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Verify secret
+        env:
+          SUPABASE_DB_MIGRATION_URL: ${{ secrets.SUPABASE_DB_MIGRATION_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_MIGRATION_URL" ]; then
+            echo "::error::Secret SUPABASE_DB_MIGRATION_URL is missing in environment 'staging'."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run migrations
+        run: npm run migration:run:prod
+        env:
+          NODE_ENV: production
+          DATABASE_MIGRATION_URL: ${{ secrets.SUPABASE_DB_MIGRATION_URL }}

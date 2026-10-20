@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -36,8 +37,13 @@ const OTP_MAX_ATTEMPTS = 5;
 const LOGIN_MAX_FAILURES = 5;
 const LOCK_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Hash factice : la connexion compare toujours un mot de passe, compte existant ou non */
-const DUMMY_HASH = bcrypt.hashSync("petalia-developer-dummy", 12);
+/**
+ * Hash factice : la connexion compare toujours un mot de passe, compte existant
+ * ou non. Calculé au premier besoin pour ne pas ralentir les démarrages à froid.
+ */
+let dummyHash: Promise<string> | undefined;
+const getDummyHash = () =>
+  (dummyHash ??= bcrypt.hash("petalia-developer-dummy", 12));
 
 /** Résultat d'une vérification ou d'une connexion réussie. */
 export interface DeveloperTokenResponse {
@@ -184,7 +190,7 @@ export class DeveloperService {
       .where("a.email = :email", { email: dto.email })
       .getOne();
     // Comparaison effectuée même sans compte : temps de réponse identique
-    const hash = account?.passwordHash ?? DUMMY_HASH;
+    const hash = account?.passwordHash ?? (await getDummyHash());
     const passwordOk = await bcrypt.compare(dto.password, hash);
 
     if (account?.lockedUntil && account.lockedUntil.getTime() > Date.now()) {
@@ -349,6 +355,14 @@ export class DeveloperService {
         "Patientez une minute avant de demander un nouveau code.",
       );
     }
+    if (
+      this.config.get("NODE_ENV") === "production" &&
+      !this.sms.isConfigured()
+    ) {
+      throw new ServiceUnavailableException(
+        "Vérification par SMS indisponible : contactez l’équipe Petalia.",
+      );
+    }
     const code = randomInt(100000, 1000000).toString();
     await this.accounts.update(account.id, {
       otpHash: await bcrypt.hash(code, 8),
@@ -356,10 +370,18 @@ export class DeveloperService {
       otpSentAt: new Date(),
       otpAttempts: 0,
     });
-    await this.sms.send(
+    const sent = await this.sms.send(
       account.phone,
       `Petalia Développeurs : votre code de vérification est ${code}. Valable 10 min.`,
     );
+    if (!sent.delivered) {
+      this.logger.error(
+        `SMS de vérification non envoyé à ${maskPhone(account.phone)} : ${sent.error}`,
+      );
+      throw new ServiceUnavailableException(
+        "Le SMS de vérification n’a pas pu être envoyé : réessayez dans quelques minutes.",
+      );
+    }
     if (
       this.config.get("NODE_ENV") !== "production" &&
       !this.sms.isConfigured()

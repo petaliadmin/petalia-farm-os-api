@@ -137,7 +137,7 @@ export class WebsiteService {
       }),
     );
 
-    this.alerter.notify({
+    await this.alerter.notifyAndWait({
       key: `website.${type}.${saved.id}`,
       severity: "info",
       title: LABELS[type],

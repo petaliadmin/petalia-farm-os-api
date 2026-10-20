@@ -93,6 +93,26 @@ export class SlackAlerterService {
     return true;
   }
 
+  /**
+   * Comme notify(), mais attend l'envoi : indispensable en serverless, où
+   * l'instance est gelée dès la réponse HTTP et un envoi en arrière-plan
+   * serait perdu. Ne lève jamais d'erreur.
+   */
+  async notifyAndWait(alert: AlertPayload): Promise<boolean> {
+    if (this.isDuplicate(alert.key)) return false;
+    this.logAlert(alert);
+    if (!this.enabled || !this.webhookUrl) return true;
+    try {
+      await this.send(this.webhookUrl, alert);
+      return true;
+    } catch (err) {
+      this.logger.error(
+        `Slack notification failed for ${alert.key}: ${(err as Error).message}`,
+      );
+      return false;
+    }
+  }
+
   private isDuplicate(key: string): boolean {
     const now = Date.now();
     this.evictExpired(now);

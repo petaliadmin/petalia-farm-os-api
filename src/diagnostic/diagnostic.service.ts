@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import * as crypto from "crypto";
-import sharp from "sharp";
+import type { Sharp, SharpOptions } from "sharp";
 import { Diagnostic } from "./entities/diagnostic.entity";
 import { Parcelle } from "../parcelles/entities/parcelle.entity";
 import { ClaudeVisionClient } from "./claude-vision.client";
@@ -15,6 +15,20 @@ import { ClaudeVisionClient } from "./claude-vision.client";
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_BYTES = 8 * 1024 * 1024;
 const TARGET_SIDE = 1568; // Anthropic recommends ≤1568px for vision; we downscale only if larger
+
+type SharpFactory = (input?: Buffer, options?: SharpOptions) => Sharp;
+let sharpFactory: SharpFactory | undefined;
+
+/**
+ * Loaded on first use: sharp is a native module, and a missing platform
+ * binary (e.g. an incomplete serverless bundle) must not stop the whole API
+ * from booting — optimize() then falls back to the original image.
+ */
+function loadSharp(): SharpFactory {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  sharpFactory ??= require("sharp") as SharpFactory;
+  return sharpFactory;
+}
 
 @Injectable()
 export class DiagnosticService {
@@ -131,6 +145,7 @@ export class DiagnosticService {
    */
   private async optimize(buf: Buffer): Promise<Buffer> {
     try {
+      const sharp = loadSharp();
       const meta = await sharp(buf).metadata();
       const longSide = Math.max(meta.width ?? 0, meta.height ?? 0);
       const pipeline = sharp(buf).rotate();

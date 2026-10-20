@@ -1,11 +1,24 @@
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe, INestApplication } from "@nestjs/common";
+import {
+  ValidationPipe,
+  INestApplication,
+  NestApplicationOptions,
+} from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { ExpressAdapter } from "@nestjs/platform-express";
 import { Logger as PinoLogger } from "nestjs-pino";
 import * as express from "express";
 import { AppModule } from "./app.module";
 import { setupPublicApiDocs } from "./public-api/openapi";
+import { isServerless } from "./common/runtime";
+import { installServerlessBullPatch } from "./serverless/bull-serverless";
+
+/** Fronts publics de Petalia, autorisés quel que soit CORS_ORIGIN. */
+export const FIRST_PARTY_ORIGINS = [
+  "https://www.petalia.sn",
+  "https://petalia.sn",
+  "https://developers.petalia.sn",
+];
 
 const SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14";
 
@@ -23,14 +36,22 @@ export async function configureApp(app: INestApplication): Promise<void> {
     }),
   );
 
-  // Site vitrine (formulaires, espace développeur) + front local par défaut
-  const allowedOrigins = (
-    process.env.CORS_ORIGIN ||
-    "http://localhost:4200,https://www.petalia.sn,https://petalia.sn,https://developers.petalia.sn"
-  )
-    .split(",")
+  // CORS_ORIGIN liste les fronts de la plateforme ; le site vitrine et
+  // l'espace développeur sont toujours autorisés (formulaires, console)
+  const allowedOrigins = [
+    ...(process.env.CORS_ORIGIN || "http://localhost:4200").split(","),
+    ...FIRST_PARTY_ORIGINS,
+  ]
     .map((o) => o.trim())
     .filter(Boolean);
+
+  // Derrière le proxy Vercel / nginx / ELB : l'IP du client (limites par IP)
+  // vient de X-Forwarded-For. TRUST_PROXY=0 pour un accès direct sans proxy.
+  const trustProxy = Number(process.env.TRUST_PROXY ?? 1);
+  (app.getHttpAdapter().getInstance() as express.Express).set(
+    "trust proxy",
+    Number.isFinite(trustProxy) ? trustProxy : 1,
+  );
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -84,9 +105,19 @@ export async function configureApp(app: INestApplication): Promise<void> {
 export async function createApp(
   expressInstance?: express.Express,
 ): Promise<INestApplication> {
+  if (isServerless()) installServerlessBullPatch();
+  // Vercel keeps a limited number of log lines per invocation: the ~250
+  // "Mapped route" lines of a cold start would push any boot error out.
+  const options: NestApplicationOptions = isServerless()
+    ? { logger: ["error", "warn"] }
+    : {};
   const app = expressInstance
-    ? await NestFactory.create(AppModule, new ExpressAdapter(expressInstance))
-    : await NestFactory.create(AppModule);
+    ? await NestFactory.create(
+        AppModule,
+        new ExpressAdapter(expressInstance),
+        options,
+      )
+    : await NestFactory.create(AppModule, options);
   await configureApp(app);
   return app;
 }

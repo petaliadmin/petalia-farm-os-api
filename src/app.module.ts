@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Logger, Module } from "@nestjs/common";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -7,9 +7,13 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { BullModule } from "@nestjs/bull";
 import { LoggerModule } from "nestjs-pino";
-import { redisStore } from "cache-manager-redis-yet";
+import { redisInsStore } from "cache-manager-redis-yet";
+import { createClient, RedisClientType } from "redis";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 import { pinoConfig } from "./common/config/logger.config";
+import { redisConnection } from "./common/config/redis.config";
+import { isServerless } from "./common/runtime";
+import { buildDataSourceOptions } from "./database/database.config";
 
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -48,6 +52,7 @@ import { AuditModule } from "./audit/audit.module";
 import { AuditInterceptor } from "./audit/audit.interceptor";
 import { SmsModule } from "./sms/sms.module";
 import { PublicApiModule } from "./public-api/public-api.module";
+import { ServerlessModule } from "./serverless/serverless.module";
 import { WebsiteModule } from "./website/website.module";
 import { DeveloperModule } from "./developer/developer.module";
 
@@ -61,30 +66,43 @@ import { DeveloperModule } from "./developer/developer.module";
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: "postgres",
-        host: config.get("DB_HOST", "localhost"),
-        port: config.get<number>("DB_PORT", 5432),
-        username: config.get("DB_USER", "petalia"),
-        password: config.get("DB_PASSWORD", "secret"),
-        database: config.get("DB_NAME", "petalia"),
-        entities: [__dirname + "/**/*.entity{.ts,.js}"],
-        synchronize: config.get("NODE_ENV") !== "production",
-        logging: config.get("NODE_ENV") === "development",
+        ...buildDataSourceOptions((key) => config.get<string>(key)),
+        autoLoadEntities: true,
+        // A serverless invocation cannot wait through 10 retries (default).
+        ...(isServerless() ? { retryAttempts: 2, retryDelay: 1000 } : {}),
       }),
     }),
 
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        store: redisStore,
-        socket: {
-          host: config.get("REDIS_HOST", "localhost"),
-          port: config.get<number>("REDIS_PORT", 6379),
-        },
-        password: config.get("REDIS_PASSWORD") || undefined,
-        ttl: 5 * 60 * 1000,
-      }),
+      useFactory: async (config: ConfigService) => {
+        const { host, port, username, password, tls } = redisConnection((key) =>
+          config.get<string>(key),
+        );
+        const reconnectStrategy = (retries: number) =>
+          Math.min(retries * 200, 5000);
+        const client = createClient({
+          socket: tls
+            ? { host, port, tls: true, servername: host, reconnectStrategy }
+            : { host, port, reconnectStrategy },
+          username,
+          password,
+          // Keeps managed Redis (Upstash) from dropping idle connections.
+          pingInterval: 60_000,
+        });
+        // Without a listener node-redis turns a dropped socket into an
+        // uncaught exception that kills the process; it reconnects by itself.
+        client.on("error", (err: Error) =>
+          new Logger("RedisCache").warn(`Redis cache: ${err.message}`),
+        );
+        await client.connect();
+        const ttl = 5 * 60 * 1000;
+        return {
+          store: redisInsStore(client as RedisClientType, { ttl }),
+          ttl,
+        };
+      },
     }),
 
     ThrottlerModule.forRoot([{ name: "global", ttl: 60_000, limit: 120 }]),
@@ -92,11 +110,7 @@ import { DeveloperModule } from "./developer/developer.module";
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get("REDIS_HOST", "localhost"),
-          port: config.get<number>("REDIS_PORT", 6379),
-          password: config.get("REDIS_PASSWORD") || undefined,
-        },
+        redis: redisConnection((key) => config.get<string>(key)),
         defaultJobOptions: {
           attempts: 3,
           backoff: { type: "exponential", delay: 5000 },
@@ -106,7 +120,9 @@ import { DeveloperModule } from "./developer/developer.module";
       }),
     }),
 
-    ScheduleModule.forRoot(),
+    // On Vercel, @Cron jobs are triggered by Vercel Cron through
+    // ServerlessModule instead of in-process timers.
+    ...(isServerless() ? [ServerlessModule] : [ScheduleModule.forRoot()]),
     LoggerModule.forRootAsync(pinoConfig),
 
     AuthModule,

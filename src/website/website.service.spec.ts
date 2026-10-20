@@ -16,7 +16,7 @@ function setup() {
     findAndCount: jest.fn().mockResolvedValue([[], 0]),
   } as unknown as jest.Mocked<Repository<WebsiteRequest>>;
   const alerter = {
-    notify: jest.fn().mockReturnValue(true),
+    notifyAndWait: jest.fn().mockResolvedValue(true),
   } as unknown as jest.Mocked<SlackAlerterService>;
   return { service: new WebsiteService(requests, alerter), requests, alerter };
 }
@@ -43,7 +43,7 @@ describe("WebsiteService", () => {
         details: { subject: "Devis" },
       }),
     );
-    expect(alerter.notify).toHaveBeenCalledWith(
+    expect(alerter.notifyAndWait).toHaveBeenCalledWith(
       expect.objectContaining({ key: `website.contact.${ID}` }),
     );
   });
@@ -60,7 +60,7 @@ describe("WebsiteService", () => {
 
     expect(res.success).toBe(true);
     expect(requests.save).not.toHaveBeenCalled();
-    expect(alerter.notify).not.toHaveBeenCalled();
+    expect(alerter.notifyAndWait).not.toHaveBeenCalled();
   });
 
   it("garde les champs de la démo dans details", async () => {

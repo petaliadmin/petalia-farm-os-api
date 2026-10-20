@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
@@ -76,7 +80,7 @@ function setup(opts: { plan?: PlanCode; activeKeys?: number } = {}) {
       .mockResolvedValue({ code: opts.plan ?? "free" }),
   } as unknown as BillingService;
   const sms = {
-    send: jest.fn(),
+    send: jest.fn().mockResolvedValue({ delivered: true }),
     isConfigured: () => true,
   } as unknown as jest.Mocked<SmsService>;
   const jwt = {
@@ -190,6 +194,25 @@ describe("DeveloperService — comptes", () => {
       "+221771234567",
       expect.stringMatching(/\d{6}/),
     );
+  });
+
+  it("signale un SMS de vérification non envoyé", async () => {
+    const { service, accounts, sms } = setup();
+    accounts.findOne.mockResolvedValue(null);
+    sms.send.mockResolvedValue({
+      delivered: false,
+      provider: "orange",
+      error: "quota",
+    });
+
+    await expect(
+      service.signup({
+        name: "Awa",
+        email: "awa@agritech.sn",
+        password: "motdepasse-solide",
+        phone: "+221771234567",
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it("refuse une inscription sur une adresse déjà vérifiée", async () => {

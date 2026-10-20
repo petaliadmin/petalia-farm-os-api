@@ -38,3 +38,6 @@ Thumbs.db
 # Misc
 *.tgz
 .cache/
+
+# Vercel
+.vercel
