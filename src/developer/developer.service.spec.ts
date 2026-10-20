@@ -29,7 +29,9 @@ const ORG = "3f2b8c1e-9d4a-4e7b-8a1c-2b3c4d5e6f70";
 const SESSION = { accountId: "acc-1", organisationId: ORG };
 const DAY = 24 * 60 * 60 * 1000;
 
-function setup(opts: { plan?: PlanCode; activeKeys?: number } = {}) {
+function setup(
+  opts: { plan?: PlanCode; activeKeys?: number; smsMode?: string } = {},
+) {
   const qb = {
     addSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
@@ -86,7 +88,11 @@ function setup(opts: { plan?: PlanCode; activeKeys?: number } = {}) {
   const jwt = {
     sign: jest.fn().mockReturnValue("jwt"),
   } as unknown as JwtService;
-  const config = { get: jest.fn() } as unknown as ConfigService;
+  const config = {
+    get: jest.fn((k: string) =>
+      k === "DEVELOPER_SMS_MODE" ? opts.smsMode : undefined,
+    ),
+  } as unknown as ConfigService;
   const service = new DeveloperService(
     accounts,
     organisations,
@@ -194,6 +200,39 @@ describe("DeveloperService — comptes", () => {
       "+221771234567",
       expect.stringMatching(/\d{6}/),
     );
+  });
+
+  it("renvoie le code sans SMS en mode démonstration", async () => {
+    const { service, accounts, sms } = setup({ smsMode: "demo" });
+    accounts.findOne.mockResolvedValue(null);
+
+    const res = await service.signup({
+      name: "Awa",
+      email: "awa@agritech.sn",
+      password: "motdepasse-solide",
+      phone: "+221771234567",
+    });
+
+    expect(res.demoCode).toMatch(/^\d{6}$/);
+    expect(sms.send).not.toHaveBeenCalled();
+    const stored = accounts.update.mock.calls[0][1] as { otpHash: string };
+    expect(await bcrypt.compare(res.demoCode as string, stored.otpHash)).toBe(
+      true,
+    );
+  });
+
+  it("ne renvoie jamais le code hors mode démonstration", async () => {
+    const { service, accounts } = setup();
+    accounts.findOne.mockResolvedValue(null);
+
+    const res = await service.signup({
+      name: "Awa",
+      email: "awa@agritech.sn",
+      password: "motdepasse-solide",
+      phone: "+221771234567",
+    });
+
+    expect(res.demoCode).toBeUndefined();
   });
 
   it("signale un SMS de vérification non envoyé", async () => {

@@ -64,6 +64,13 @@ export class DeveloperService {
   private readonly logger = new Logger(DeveloperService.name);
   readonly policy: KeyPolicy;
   private readonly tokenTtlSeconds = 2 * 60 * 60;
+  /**
+   * Mode démonstration (DEVELOPER_SMS_MODE=demo) : aucun SMS n'est envoyé, le
+   * code est renvoyé dans la réponse (demoCode) et affiché par le portail.
+   * Provisoire, tant que l'envoi de SMS n'est pas opérationnel : le numéro
+   * n'est alors pas réellement vérifié.
+   */
+  private readonly demoCodes: boolean;
 
   constructor(
     @InjectRepository(DeveloperAccount)
@@ -79,6 +86,12 @@ export class DeveloperService {
     private readonly config: ConfigService,
   ) {
     this.policy = loadKeyPolicy(config.get<string>("DEVELOPER_KEY_POLICY"));
+    this.demoCodes = config.get<string>("DEVELOPER_SMS_MODE") === "demo";
+    if (this.demoCodes) {
+      this.logger.warn(
+        "DEVELOPER_SMS_MODE=demo : codes de vérification renvoyés à l'écran, aucun SMS envoyé",
+      );
+    }
   }
 
   // ---------- Inscription et connexion ----------
@@ -104,15 +117,18 @@ export class DeveloperService {
       otpAttempts: 0,
     });
     account = await this.accounts.save(account);
-    await this.sendCode(account, true);
-    return { verificationRequired: true, phone: maskPhone(phone) };
+    const demoCode = await this.sendCode(account, true);
+    return { verificationRequired: true, phone: maskPhone(phone), demoCode };
   }
 
   async resend(email: string) {
     const account = await this.findByEmail(email);
     // Réponse identique si le compte n'existe pas ou est déjà vérifié (pas d'énumération)
-    if (account && !account.verifiedAt) await this.sendCode(account, false);
-    return { sent: true };
+    const demoCode =
+      account && !account.verifiedAt
+        ? await this.sendCode(account, false)
+        : undefined;
+    return { sent: true, demoCode };
   }
 
   async verify(email: string, code: string): Promise<DeveloperTokenResponse> {
@@ -213,14 +229,20 @@ export class DeveloperService {
     }
     if (!account.verifiedAt || !account.organisationId) {
       // Un code récent reste valable : le délai entre deux envois n'empêche pas la réponse 403
-      await this.sendCode(account, false).catch((e) => {
-        if (!(e instanceof BadRequestException)) throw e;
-      });
+      // En démonstration, un nouveau code est toujours émis pour pouvoir l'afficher
+      const demoCode = await this.sendCode(account, this.demoCodes).catch(
+        (e) => {
+          if (!(e instanceof BadRequestException)) throw e;
+          return undefined;
+        },
+      );
       throw new ForbiddenException({
         statusCode: 403,
         code: "verification_required",
-        message:
-          "Vérifiez votre numéro : un code vient de vous être envoyé par SMS.",
+        message: demoCode
+          ? "Vérifiez votre numéro avec le code de démonstration affiché."
+          : "Vérifiez votre numéro : un code vient de vous être envoyé par SMS.",
+        demoCode,
       });
     }
     await this.accounts.update(account.id, {
@@ -342,10 +364,11 @@ export class DeveloperService {
     return this.accounts.findOne({ where: { email } });
   }
 
+  /** Émet un code ; renvoie sa valeur uniquement en mode démonstration. */
   private async sendCode(
     account: DeveloperAccount,
     force: boolean,
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     if (
       !force &&
       account.otpSentAt &&
@@ -356,6 +379,7 @@ export class DeveloperService {
       );
     }
     if (
+      !this.demoCodes &&
       this.config.get("NODE_ENV") === "production" &&
       !this.sms.isConfigured()
     ) {
@@ -370,6 +394,7 @@ export class DeveloperService {
       otpSentAt: new Date(),
       otpAttempts: 0,
     });
+    if (this.demoCodes) return code;
     const sent = await this.sms.send(
       account.phone,
       `Petalia Développeurs : votre code de vérification est ${code}. Valable 10 min.`,
@@ -390,6 +415,7 @@ export class DeveloperService {
         `[DEV] code de vérification pour ${account.email} : ${code}`,
       );
     }
+    return undefined;
   }
 
   private session(account: DeveloperAccount): DeveloperTokenResponse {
