@@ -6,7 +6,7 @@ name: Vercel background jobs
 # jitter — good enough for the test phase.
 #
 # Runs when repository variable DEPLOY_TARGET is "vercel" or "both".
-# Secrets (environment "production"):
+# Secrets (environment "staging", shared with the AWS workflows):
 #   VERCEL_API_URL  e.g. https://petalia-farm-os-api.vercel.app
 #   CRON_SECRET     same value as the Vercel environment variable
 
@@ -27,7 +27,7 @@ jobs:
     name: Trigger background work
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: production
+    environment: staging
     if: vars.DEPLOY_TARGET == 'vercel' || vars.DEPLOY_TARGET == 'both'
 
     steps:
@@ -37,7 +37,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$API" ] || [ -z "$CRON_SECRET" ]; then
-            echo "::error::Secrets VERCEL_API_URL and CRON_SECRET are required in environment 'production'."
+            echo "::error::Secrets VERCEL_API_URL and CRON_SECRET are required in environment 'staging'."
             exit 1
           fi
 

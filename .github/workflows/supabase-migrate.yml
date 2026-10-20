@@ -4,7 +4,7 @@ name: Supabase migrations
 # Vercel deploys main itself through its Git integration (Hobby plan, test
 # phase); this workflow applies the pending migrations to Supabase.
 #
-# Secret (environment "production"):
+# Secret (environment "staging", shared with the AWS workflows):
 #   SUPABASE_DB_MIGRATION_URL  session pooler connection string (port 5432)
 
 on:
@@ -26,7 +26,7 @@ jobs:
     name: Migrate Supabase
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: production
+    environment: staging
     if: >-
       (vars.DEPLOY_TARGET == 'vercel' || vars.DEPLOY_TARGET == 'both') &&
       (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
@@ -42,7 +42,7 @@ jobs:
           SUPABASE_DB_MIGRATION_URL: ${{ secrets.SUPABASE_DB_MIGRATION_URL }}
         run: |
           if [ -z "$SUPABASE_DB_MIGRATION_URL" ]; then
-            echo "::error::Secret SUPABASE_DB_MIGRATION_URL is missing in environment 'production'."
+            echo "::error::Secret SUPABASE_DB_MIGRATION_URL is missing in environment 'staging'."
             exit 1
           fi
 

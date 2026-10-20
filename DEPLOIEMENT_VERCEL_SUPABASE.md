@@ -66,7 +66,7 @@ Avec un vidage toutes les 10 min, la consommation reste de l'ordre de quelques m
 3. Déployer, puis noter l'URL de production (`https://<projet>.vercel.app`). Tester : `GET /api/health` doit répondre `"status": "ok"`.
 4. Passage en Pro plus tard (optionnel) : remettre des crons fréquents dans `vercel.json` (ex. `* * * * *` sur `/api/internal/queues/drain`) et désactiver `vercel-background.yml`.
 
-### 4. GitHub (environnement `production`)
+### 4. GitHub (environnement `staging`, le même que pour AWS)
 
 Secrets : `SUPABASE_DB_MIGRATION_URL`, `VERCEL_API_URL` (l'URL de l'étape 3), `CRON_SECRET` (même valeur que sur Vercel).
 Variable de dépôt : `DEPLOY_TARGET=vercel`.
