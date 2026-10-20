@@ -1,5 +1,8 @@
 name: Deploy Petalia API
 
+# AWS EC2 deployment. Repository variable DEPLOY_TARGET picks the platform:
+# unset or "aws" → this workflow, "vercel" → deploy-vercel.yml, "both" → both.
+
 on:
   workflow_run:
     workflows: ["CI"]
@@ -12,7 +15,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: staging
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_TARGET != 'vercel' }}
 
     steps:
       - name: Checkout code
@@ -43,7 +46,7 @@ jobs:
             export IMAGE_TAG=${IMAGE_TAG:-latest}
             export DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}
             docker compose --env-file .env.production -f docker-compose.deploy.yml pull
-            docker compose --env-file .env.production -f docker-compose.deploy.yml run --rm --no-deps -e NODE_ENV=production api npm run migration:run
+            docker compose --env-file .env.production -f docker-compose.deploy.yml run --rm --no-deps -e NODE_ENV=production api npm run migration:run:prod
             docker compose --env-file .env.production -f docker-compose.deploy.yml down
             docker compose --env-file .env.production -f docker-compose.deploy.yml up -d
             docker image prune -f
