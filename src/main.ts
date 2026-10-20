@@ -1,5 +1,9 @@
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe, INestApplication } from "@nestjs/common";
+import {
+  ValidationPipe,
+  INestApplication,
+  NestApplicationOptions,
+} from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { ExpressAdapter } from "@nestjs/platform-express";
 import { Logger as PinoLogger } from "nestjs-pino";
@@ -81,9 +85,18 @@ export async function createApp(
   expressInstance?: express.Express,
 ): Promise<INestApplication> {
   if (isServerless()) installServerlessBullPatch();
+  // Vercel keeps a limited number of log lines per invocation: the ~250
+  // "Mapped route" lines of a cold start would push any boot error out.
+  const options: NestApplicationOptions = isServerless()
+    ? { logger: ["error", "warn"] }
+    : {};
   const app = expressInstance
-    ? await NestFactory.create(AppModule, new ExpressAdapter(expressInstance))
-    : await NestFactory.create(AppModule);
+    ? await NestFactory.create(
+        AppModule,
+        new ExpressAdapter(expressInstance),
+        options,
+      )
+    : await NestFactory.create(AppModule, options);
   await configureApp(app);
   return app;
 }
