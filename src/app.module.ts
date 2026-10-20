@@ -49,6 +49,7 @@ import { AuditInterceptor } from "./audit/audit.interceptor";
 import { SmsModule } from "./sms/sms.module";
 import { PublicApiModule } from "./public-api/public-api.module";
 import { WebsiteModule } from "./website/website.module";
+import { DeveloperModule } from "./developer/developer.module";
 
 @Module({
   imports: [
@@ -145,6 +146,7 @@ import { WebsiteModule } from "./website/website.module";
     SmsModule,
     PublicApiModule,
     WebsiteModule,
+    DeveloperModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

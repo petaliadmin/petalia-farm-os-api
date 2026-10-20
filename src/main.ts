@@ -26,7 +26,7 @@ export async function configureApp(app: INestApplication): Promise<void> {
   // Site vitrine (formulaires, espace développeur) + front local par défaut
   const allowedOrigins = (
     process.env.CORS_ORIGIN ||
-    "http://localhost:4200,https://www.petalia.sn,https://petalia.sn"
+    "http://localhost:4200,https://www.petalia.sn,https://petalia.sn,https://developers.petalia.sn"
   )
     .split(",")
     .map((o) => o.trim())
