@@ -1,4 +1,5 @@
 import { LoggerModuleAsyncParams } from "nestjs-pino";
+import { isServerless } from "../runtime";
 
 export const pinoConfig: LoggerModuleAsyncParams = {
   useFactory: () => ({
@@ -6,8 +7,10 @@ export const pinoConfig: LoggerModuleAsyncParams = {
       level:
         process.env.LOG_LEVEL ||
         (process.env.NODE_ENV === "production" ? "info" : "debug"),
+      // pino-pretty runs in a worker thread loaded by name, which serverless
+      // bundles do not ship: JSON logs there, whatever NODE_ENV says.
       transport:
-        process.env.NODE_ENV !== "production"
+        process.env.NODE_ENV !== "production" && !isServerless()
           ? {
               target: "pino-pretty",
               options: {
