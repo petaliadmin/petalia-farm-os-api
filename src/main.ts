@@ -23,7 +23,11 @@ export async function configureApp(app: INestApplication): Promise<void> {
     }),
   );
 
-  const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:4200")
+  // Site vitrine (formulaires, espace développeur) + front local par défaut
+  const allowedOrigins = (
+    process.env.CORS_ORIGIN ||
+    "http://localhost:4200,https://www.petalia.sn,https://petalia.sn"
+  )
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
@@ -55,6 +59,8 @@ export async function configureApp(app: INestApplication): Promise<void> {
       "Idempotent-Replayed",
       "X-RateLimit-Limit-Hour",
       "X-RateLimit-Remaining-Hour",
+      "X-RateLimit-Limit-Month",
+      "X-RateLimit-Remaining-Month",
     ],
   });
 
