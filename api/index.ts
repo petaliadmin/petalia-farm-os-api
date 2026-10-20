@@ -6,6 +6,9 @@ import { VercelRequest, VercelResponse } from "@vercel/node";
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled rejection:", err);
 });
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
 
 // Runs the output of `nest build` (the "vercel-build" script) — the same
 // compiled code as the Docker image on AWS — instead of letting Vercel
@@ -36,6 +39,15 @@ export default async function handler(
     cachedServer = null;
     throw err;
   });
-  const server = await cachedServer;
+  let server: Express;
+  try {
+    server = await cachedServer;
+  } catch (err) {
+    // Logged here so the cause shows up in Vercel's logs (filter: Error)
+    // instead of a bare FUNCTION_INVOCATION_FAILED.
+    console.error("API boot failed:", err);
+    res.status(503).json({ status: "unavailable", error: "API boot failed" });
+    return;
+  }
   server(req as any, res as any);
 }
