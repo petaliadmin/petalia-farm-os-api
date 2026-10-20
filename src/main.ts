@@ -6,6 +6,8 @@ import { Logger as PinoLogger } from "nestjs-pino";
 import * as express from "express";
 import { AppModule } from "./app.module";
 import { setupPublicApiDocs } from "./public-api/openapi";
+import { isServerless } from "./common/runtime";
+import { installServerlessBullPatch } from "./serverless/bull-serverless";
 
 const SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14";
 
@@ -78,6 +80,7 @@ export async function configureApp(app: INestApplication): Promise<void> {
 export async function createApp(
   expressInstance?: express.Express,
 ): Promise<INestApplication> {
+  if (isServerless()) installServerlessBullPatch();
   const app = expressInstance
     ? await NestFactory.create(AppModule, new ExpressAdapter(expressInstance))
     : await NestFactory.create(AppModule);

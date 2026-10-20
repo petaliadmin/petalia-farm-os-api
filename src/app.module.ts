@@ -10,6 +10,9 @@ import { LoggerModule } from "nestjs-pino";
 import { redisStore } from "cache-manager-redis-yet";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 import { pinoConfig } from "./common/config/logger.config";
+import { redisConnection } from "./common/config/redis.config";
+import { isServerless } from "./common/runtime";
+import { buildDataSourceOptions } from "./database/database.config";
 
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -48,6 +51,7 @@ import { AuditModule } from "./audit/audit.module";
 import { AuditInterceptor } from "./audit/audit.interceptor";
 import { SmsModule } from "./sms/sms.module";
 import { PublicApiModule } from "./public-api/public-api.module";
+import { ServerlessModule } from "./serverless/serverless.module";
 
 @Module({
   imports: [
@@ -59,30 +63,26 @@ import { PublicApiModule } from "./public-api/public-api.module";
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: "postgres",
-        host: config.get("DB_HOST", "localhost"),
-        port: config.get<number>("DB_PORT", 5432),
-        username: config.get("DB_USER", "petalia"),
-        password: config.get("DB_PASSWORD", "secret"),
-        database: config.get("DB_NAME", "petalia"),
-        entities: [__dirname + "/**/*.entity{.ts,.js}"],
-        synchronize: config.get("NODE_ENV") !== "production",
-        logging: config.get("NODE_ENV") === "development",
+        ...buildDataSourceOptions((key) => config.get<string>(key)),
+        autoLoadEntities: true,
       }),
     }),
 
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        store: redisStore,
-        socket: {
-          host: config.get("REDIS_HOST", "localhost"),
-          port: config.get<number>("REDIS_PORT", 6379),
-        },
-        password: config.get("REDIS_PASSWORD") || undefined,
-        ttl: 5 * 60 * 1000,
-      }),
+      useFactory: async (config: ConfigService) => {
+        const { host, port, username, password, tls } = redisConnection((key) =>
+          config.get<string>(key),
+        );
+        return {
+          store: redisStore,
+          socket: { host, port, tls: !!tls },
+          username,
+          password,
+          ttl: 5 * 60 * 1000,
+        };
+      },
     }),
 
     ThrottlerModule.forRoot([{ name: "global", ttl: 60_000, limit: 120 }]),
@@ -90,11 +90,7 @@ import { PublicApiModule } from "./public-api/public-api.module";
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get("REDIS_HOST", "localhost"),
-          port: config.get<number>("REDIS_PORT", 6379),
-          password: config.get("REDIS_PASSWORD") || undefined,
-        },
+        redis: redisConnection((key) => config.get<string>(key)),
         defaultJobOptions: {
           attempts: 3,
           backoff: { type: "exponential", delay: 5000 },
@@ -104,7 +100,9 @@ import { PublicApiModule } from "./public-api/public-api.module";
       }),
     }),
 
-    ScheduleModule.forRoot(),
+    // On Vercel, @Cron jobs are triggered by Vercel Cron through
+    // ServerlessModule instead of in-process timers.
+    ...(isServerless() ? [ServerlessModule] : [ScheduleModule.forRoot()]),
     LoggerModule.forRootAsync(pinoConfig),
 
     AuthModule,
