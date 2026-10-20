@@ -20,8 +20,9 @@ export function buildDataSourceOptions(
   env: Env,
   { forMigrations = false } = {},
 ): DataSourceOptions {
-  const url =
-    (forMigrations && env("DATABASE_MIGRATION_URL")) || env("DATABASE_URL");
+  const url = cleanUrl(
+    (forMigrations && env("DATABASE_MIGRATION_URL")) || env("DATABASE_URL"),
+  );
   const host = url ? new URL(url).hostname : env("DB_HOST") || "localhost";
 
   const connection = url
@@ -59,6 +60,23 @@ export function buildDataSourceOptions(
     synchronize,
     logging: env("NODE_ENV") === "development",
   };
+}
+
+/**
+ * Tolerates surrounding quotes or spaces from a copy-paste. The error never
+ * echoes the value, which contains the password.
+ */
+function cleanUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const url = raw.trim().replace(/^['"]|['"]$/g, "");
+  try {
+    new URL(url);
+  } catch {
+    throw new Error(
+      "DATABASE_URL / DATABASE_MIGRATION_URL is not a valid URL — expected postgresql://<user>:<password>@<host>:<port>/postgres (URL-encode special characters in the password)",
+    );
+  }
+  return url;
 }
 
 /**
