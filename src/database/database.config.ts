@@ -54,7 +54,7 @@ export function buildDataSourceOptions(
     type: "postgres",
     ...connection,
     ssl: sslOptions(env, host),
-    extra: { max: poolMax },
+    extra: { max: poolMax, connectionTimeoutMillis: 10_000 },
     entities: [join(__dirname, "../**/*.entity{.ts,.js}")],
     migrations: forMigrations ? [join(__dirname, "migrations/*{.ts,.js}")] : [],
     synchronize,
@@ -74,6 +74,13 @@ function cleanUrl(raw: string | undefined): string | undefined {
   } catch {
     throw new Error(
       "DATABASE_URL / DATABASE_MIGRATION_URL is not a valid URL — expected postgresql://<user>:<password>@<host>:<port>/postgres (URL-encode special characters in the password)",
+    );
+  }
+  // Supabase's direct host only resolves to IPv6, which Vercel and GitHub
+  // runners cannot reach: the connection just times out.
+  if (/^db\.[a-z0-9]+\.supabase\.co$/.test(new URL(url).hostname)) {
+    throw new Error(
+      "DATABASE_URL points at Supabase's direct host (db.<ref>.supabase.co, IPv6 only) — use the pooler connection string (*.pooler.supabase.com) from Supabase → Connect",
     );
   }
   return url;
