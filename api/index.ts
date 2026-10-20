@@ -1,7 +1,13 @@
 import express, { Express } from "express";
 import { VercelRequest, VercelResponse } from "@vercel/node";
 
-// Runs the output of `nest build` (vercel.json buildCommand) — the same
+// A stray background rejection (Redis client, fire-and-forget promise) would
+// otherwise terminate the whole function instance: log it with its stack.
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled rejection:", err);
+});
+
+// Runs the output of `nest build` (the "vercel-build" script) — the same
 // compiled code as the Docker image on AWS — instead of letting Vercel
 // transpile src/ file by file, which breaks decorator metadata.
 // Typed locally: importing src/ types here would make Vercel type-check the

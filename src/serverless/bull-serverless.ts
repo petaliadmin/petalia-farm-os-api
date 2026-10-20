@@ -25,7 +25,15 @@ export function installServerlessBullPatch(): void {
 
   const proto = Bull.prototype as Bull.Queue & {
     setHandler(name: string, handler: unknown): void;
+    setWorkerName(): Promise<unknown>;
   };
+
+  // setHandler() fires setWorkerName() without awaiting it: that opens the
+  // blocking connection (useless here) and sends CLIENT SETNAME, which
+  // managed Redis may refuse (Upstash, ACLs). Bull only swallows the exact
+  // "unknown command" error, so any other reply became an unhandled
+  // rejection that killed the function at boot.
+  proto.setWorkerName = () => Promise.resolve();
 
   proto.process = function (this: typeof proto, ...args: unknown[]) {
     const handler = args.pop();
